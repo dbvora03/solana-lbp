@@ -22,7 +22,7 @@ pub fn compute_reservers_and_weights(
 
   let mut seconds_elapsed: u64 = 0;
   let clock = Clock::get()?;
-  if (clock.unix_timestamp > pool.settings.sale_start) {
+  if clock.unix_timestamp > pool.settings.sale_start {
     seconds_elapsed = clock.unix_timestamp - pool.settings.sale_start;
   }
 
@@ -33,7 +33,7 @@ pub fn compute_reservers_and_weights(
     total_seconds
   )
 
-  u64 share_weight = 1_000_000_000 - asset_weight;
+  let share_weight: u64 = 1_000_000_000 - asset_weight;
 
   return (asset_reserve, share_reserve, asset_weight, share_weight);
 }
