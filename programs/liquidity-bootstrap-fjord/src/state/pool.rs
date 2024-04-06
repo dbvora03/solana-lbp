@@ -23,7 +23,7 @@ pub struct PoolSettings {
 pub struct Pool {
   pub settings: PoolSettings,
   pub initialized: bool,
-  pub total_swap_fees_asset: u64;
-  pub total_purchased: u64;
+  pub total_swap_fees_asset: u64,
+  pub total_purchased: u64,
   pub bump: u8, // 1
 }

@@ -39,7 +39,7 @@ pub mod liquidity_bootstrap_fjord {
         instructions::transfer_ownership::handler(ctx, new_owner)
     }
 
-    pub fn create_pool(ctx: Context<CreatePool>, settings: PoolSettings, shares: u64, assets: u64) -> Result<()> {
+    pub fn create_pool(ctx: Context<CreatePool>, settings: PoolSettings, shares: u64, assets: u64, id: u64) -> Result<()> {
         instructions::create_pool::handler(ctx, settings, shares, assets)
     }
 }
