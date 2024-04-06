@@ -1,6 +1,8 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, TokenAccount, Token, Transfer};
 use crate::state::*;
+use crate::utils::*;
+
 use anchor_lang::error_code;
 
 #[error_code]
@@ -9,12 +11,17 @@ pub enum ErrorCode {
   AlreadyInitialized,
   #[msg("Slippage Exceeded")]
   SlippageExceeded,
+
   #[msg("Max Assets In Exceeded")]
   MaxAssetsInExceeded,
+
   #[msg("Max Shares Exceeded")]
   MaxSharesExceeded,
-  
+
+  #[msg("Math Error")]
+  MathError,
 }
+
 
 #[event]
 pub struct Buy {
@@ -82,7 +89,7 @@ pub fn handler(
   min_shares_out: u64,
   recipient: Pubkey,
   referrer: Pubkey  
-) -> Result<()> {
+) -> Result<u64> {
 
   let pool = &mut ctx.accounts.pool;
   let lbp_manager_info = &mut ctx.accounts.lbp_manager_info;
@@ -96,18 +103,20 @@ pub fn handler(
   let referrer_stats = &mut ctx.accounts.referrer_stats;
 
 
-  let shares_out: u64 = 0;
+  let shares_out_result = preview_shares_out(pool, assets_in, assets, shares);
+  if shares_out_result.is_err() {
+    return err!(ErrorCode::MathError);
+  }
+
+  let mut shares_out = shares_out_result.unwrap();
 
   if shares_out < min_shares_out {
     return err!(ErrorCode::SlippageExceeded);
   }
 
-  let assets_in: u64 = preview_shares_out(pool, assets_in, assets, shares); // TODO: Do the math here with the accounts
-
   if assets + assets_in - swap_fee >= pool.settings.max_assets_in {
     return err!(ErrorCode::MaxAssetsInExceeded);
   }
-
 
   token::transfer(
     CpiContext::new(

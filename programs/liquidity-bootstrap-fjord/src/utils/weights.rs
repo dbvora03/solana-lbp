@@ -135,18 +135,18 @@ pub fn preview_assets_in(pool: &Pool, shares_out: u64, assets:u64, shares: u64) 
 pub fn preview_shares_out(pool: &Pool, assets_in: u64, assets: u64, shares: u64) -> Result<u64> {
 
   // TODO: Implement this function
-  Ok(assets_out)
+  Ok(assets_in)
 }
 
 
 pub fn preview_assets_out(pool: &Pool, shares_in: u64, assets: u64, shares: u64) -> Result<u64> {
 
   // TODO: Implement this function
-  Ok(assets_out)
+  Ok(shares_in)
 }
 
 pub fn preview_shares_in(pool: &Pool, shares_in: u64, assets: u64, shares: u64) -> Result<u64> {
 
   // TODO: Implement this function
-  Ok(assets_out)
+  Ok(shares_in)
 }

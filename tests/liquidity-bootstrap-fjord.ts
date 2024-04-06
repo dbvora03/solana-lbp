@@ -168,7 +168,24 @@ describe("liquidity-bootstrap-fjord", () => {
     );
 
     const tx = await program.methods
-      .createPoolDupe(
+      .createPool(
+        {
+          asset: assetMint,
+          share: shareMint,
+          creator: depositor.publicKey,
+          virtualAssets: new anchor.BN(1000000000),
+          virtualShares: new anchor.BN(1000000000),
+          maxSharePrice: new anchor.BN(2000000000),
+          maxSharesOut: new anchor.BN(1000000000),
+          maxAssetsIn: new anchor.BN(1000000000),
+          weightStart: new anchor.BN(1000000000),
+          weightEnd: new anchor.BN(1000000000),
+          saleEnd: new anchor.BN(1000000000),
+          saleStart: new anchor.BN(1000000000),
+          vestCliff: new anchor.BN(1000000000),
+          vestEnd: new anchor.BN(1000000000),
+          sellingAllowed: true,
+        },
         new anchor.BN(1000000000),
         new anchor.BN(1000000000),
         new anchor.BN(2000000000)
