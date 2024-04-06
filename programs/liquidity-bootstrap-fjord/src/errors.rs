@@ -1,4 +1,3 @@
-use anchor_lang::prelude::*;
 use anchor_lang::error_code;
 
 #[error_code]

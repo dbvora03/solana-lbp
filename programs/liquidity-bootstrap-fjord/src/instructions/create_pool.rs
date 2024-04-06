@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use crate::state::*;
 use crate::errors::ErrorCode;
-use anchor_spl::token::{self, Token, TokenAccount, Transfer, Mint};
+use anchor_spl::token::{self, TokenAccount, Transfer, Mint};
 
 
 #[derive(Accounts)]
@@ -11,41 +11,47 @@ pub struct CreatePool<'info> {
     pub depositor: Signer<'info>,
     asset_mint: Account<'info, Mint>,
     share_mint: Account<'info, Mint>,
+    pub lbp_manager_info: Account<'info, LBPManagerInfo>,
     #[account(
-        init,
-        seeds = [b"pool".as_ref(), &settings.creator.key().as_ref(),  &id.to_le_bytes()],
-        bump,
-        payer = depositor,
-        space = 32 + 32 + 32 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 1 + 32
+      init,
+      seeds = [
+        b"pool".as_ref(),
+        &lbp_manager_info.to_account_info().key().to_bytes(),
+        &settings.creator.key().as_ref(),
+        &id.to_le_bytes()
+      ],
+      bump,
+      payer = depositor,
+      space = 32 + 32 + 32 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 1 + (1 + 8 + 8 + 1)
     )]
     pub pool: Box<Account<'info, Pool>>,
     #[account(
-        mut, 
-        constraint = depositor_account_asset.mint == settings.asset,
-        constraint = depositor_account_asset.owner == depositor.key
+      mut,
+      constraint = depositor_account_asset.mint == settings.asset,
+      constraint = depositor_account_asset.owner == depositor.key()
     )]
     pub depositor_account_asset:  Account<'info, TokenAccount>,
 
     #[account(
-        mut, 
-        constraint = depositor_account_share.mint == settings.share,
-        constraint = depositor_account_share.owner == depositor.key
+      mut, 
+      constraint = depositor_account_share.mint == settings.share,
+      constraint = depositor_account_share.owner == depositor.key()
     )]
     pub depositor_account_share:  Account<'info, TokenAccount>,
 
     #[account(
-        init,
-        payer = depositor,
-        token::mint = asset_mint,
-        token::authority = pool,
+      init,
+      payer = depositor,
+      token::mint = asset_mint,
+      token::authority = pool,
     )]
     pub pool_account_asset:  Account<'info, TokenAccount>,
 
     #[account(
-        init,
-        payer = depositor,
-        token::mint = share_mint,
-        token::authority = pool,
+      init,
+      payer = depositor,
+      token::mint = share_mint,
+      token::authority = pool,
     )]
     pub pool_account_share:  Account<'info, TokenAccount>,
 
