@@ -1,6 +1,8 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, TokenAccount, Transfer, Mint};
+
 use crate::state::*;
+use crate::utils::*;
 
 #[derive(Accounts)]
 #[instruction(referrer: Pubkey)]
@@ -29,7 +31,7 @@ pub struct SwapAssetsForExactShares<'info> {
     ],
     payer = depositor,
     space = 8 + 32 + 32 + 8 + 8 + 1,
-    bump,
+    bump
   )]
   pub buyer_stats: Box<Account<'info, UserStats>>,
 
@@ -66,7 +68,7 @@ pub fn handler (
   let shares: u64 = ctx.accounts.pool_shares_account.amount;
 
   // Preview the assets in
-  let mut assets_in = crate::utils::preview_assets_in(pool, 0, 0);
+  let mut assets_in = compute_reservers_and_weights(pool, 0, 0);
 
   // Calculate the swap fee
   let swap_fees: u64 = assets_in * pool.swap_fee;
@@ -80,7 +82,7 @@ pub fn handler (
   // Add slippage error function
 
   // Call the swapAssetsForExactShares function 
-  if (assets + assets_in - swap_fees >= pool.settings.max_assets_in) {
+  if assets + assets_in - swap_fees >= pool.settings.max_assets_in {
     return Err(ErrorCode::MaxAssetsInExceeded.into());
   }
 
@@ -93,22 +95,21 @@ pub fn handler (
             authority: ctx.accounts.depositor.to_account_info(),
         },
     ),
-    assetsIn,
+    assets_in,
   )?;
 
-  let total_purchased_after = total_purchased + shares_out;
+  let total_purchased_after = pool.total_purchased + shares_out;
 
-  if (total_purchased_after >= pool.settings.max_shares || total_purchased_after > shares) {
+  if total_purchased_after >= pool.settings.max_shares || total_purchased_after > shares {
     return Err(ErrorCode::MaxSharesExceeded.into());
   }
 
   pool.total_purchased = total_purchased_after;
   buyer_stats.purchased += shares_out;
 
-  if (recipient != Pubkey::default() && manager.referrer_fee > 0) {
-    //             uint256 assetsReferred = assetsIn.mulWad(referrerFee());
+  if recipient != Pubkey::default() && manager.referrer_fee > 0 {
     let assets_referred: u64 = assets_in * manager.referrer_fee;
-    referred_stats.referred_amount += assets_referred;
+    referrer_stats.referred_amount += assets_referred;
   }
 
 
