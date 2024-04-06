@@ -9,7 +9,7 @@ pub fn linear_interpolation(x: u64, y: u64, i: u64, n: u64) -> u64 {
   }
 }
 
-pub fn compute_reservers_and_weights(
+pub fn compute_reserves_and_weights(
   pool: Pool,
   assets: u64, // These are calculated as asset().balanceOf(address(this)).rawSub(totalSwapFeesAsset), TODO
   shares: u64,

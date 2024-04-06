@@ -17,6 +17,8 @@ describe("swap", () => {
     .LiquidityBootstrapFjord as Program<LiquidityBootstrapFjord>;
 
   it("swaps exact assets for shares", async () => {
-    
+    // go to sale start
+    const sharesOut = 1 * 10 ** 6;
+    const maxAssetsIn = program.methods.previewAssetsIn(sharesOut);
   });
 });

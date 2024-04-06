@@ -35,6 +35,8 @@ pub struct SwapAssetsForExactShares<'info> {
   )]
   pub buyer_stats: Box<Account<'info, UserStats>>,
 
+  pub system_program: Program<'info, System>,
+
   #[account(
     init,
     seeds = [

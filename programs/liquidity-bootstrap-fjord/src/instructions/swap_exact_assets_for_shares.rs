@@ -9,6 +9,14 @@ pub enum ErrorCode {
   AlreadyInitialized,
 }
 
+#[event]
+pub struct Buy {
+  pub caller: Pubkey,
+  pub assets: u64,
+  pub shares: u64,
+  pub swap_fee: u64,
+}
+
 #[derive(Accounts)]
 pub struct SwapExactAssetsForShares<'info> {
   #[account(mut)]
@@ -76,6 +84,13 @@ pub fn handler(
   pool.total_purchased = total_purchased_after;
 
   // TODO: Create PDA if it doesnt exist and add shares to it
+
+  emit!(Buy {
+    caller: *ctx.accounts.depositor.key,
+    assets: assetsIn,
+    shares: shares_out,
+    swap_fee: swap_fee,
+  });
   
   Ok(()) 
 }
