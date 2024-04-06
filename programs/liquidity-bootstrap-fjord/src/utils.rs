@@ -1,4 +1,4 @@
-use anchor_lang::prelude::Clock;
+use anchor_lang::prelude::*;
 use crate::state::*;
 
 pub fn linear_interpolation(x: u64, y: u64, i: u64, n: u64) -> u64 {

@@ -5,7 +5,7 @@ use crate::state::*;
 #[derive(Accounts)]
 pub struct SwapExactAssetsForShares<'info> {
   #[account(mut)]
-  pub authority: Signer<'info>,
+  pub depositor: Signer<'info>,
   #[account(mut)]
   pub pool: Account<'info, Pool>,
   #[account(mut)]
@@ -16,8 +16,11 @@ pub struct SwapExactAssetsForShares<'info> {
   pub depositor_account_asset: Account<'info, TokenAccount>,
   #[account(mut)]
   pub depositor_account_share: Account<'info, TokenAccount>,
-  #[account(mut)]
-  pub token_program: Account<'info, Token>,
+
+  // The liquidity pool manager info account
+  pub lbp_manager_info: Account<'info, LBPManagerInfo>,
+  
+  pub token_program: Program<'info, Token>,
   pub system_program: Program<'info, System>,
 }
 
@@ -28,7 +31,7 @@ pub fn handler(
   minSharesOut: u64,
   recipient: Pubkey,
   referrer: Pubkey  
-) -> Result<(), E> {
+) -> Result<()> {
 
   let pool = &mut ctx.accounts.pool;
   let lbp_manager_info = &mut ctx.accounts.lbp_manager_info;
@@ -38,15 +41,15 @@ pub fn handler(
 
   let shares_out: u64 = (assetsIn - swap_fee) * (1_000_000_000 - swap_fee);
 
-  if (shares_out < minSharesOut) {
-    return Err(ErrorCode::MinSharesNotMet.into());
-  }
+  // if (shares_out < minSharesOut) {
+  //   return Err(ErrorCode::MinSharesNotMet.into());
+  // }
 
   let assets: u64 = 10; // TODO: Do the math here with the accounts
 
-  if (assets + assetsIn - swap_fee >= pool.settings.max_assets_in) {
-    return Err(ErrorCode::MaxAssetsInExceeded.into());
-  }
+  // if (assets + assetsIn - swap_fee >= pool.settings.max_assets_in) {
+  //   return Err(ErrorCode::MaxAssetsInExceeded.into());
+  // }
 
   token::transfer(
     CpiContext::new(

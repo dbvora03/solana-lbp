@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use crate::state::*;
 use crate::errors::ErrorCode;
-use anchor_spl::token::{self, TokenAccount, Transfer, Mint};
+use anchor_spl::token::{self, TokenAccount, Transfer, Mint, Token};
 
 
 #[derive(Accounts)]
@@ -62,7 +62,7 @@ pub struct CreatePool<'info> {
     )]
     pub pool_account_share:  Account<'info, TokenAccount>,
 
-    pub token_program: Account<'info, TokenAccount>,
+    pub token_program: Program<'info, Token>,
     pub rent: Sysvar<'info, Rent>,
     pub system_program: Program<'info, System>,
 }
