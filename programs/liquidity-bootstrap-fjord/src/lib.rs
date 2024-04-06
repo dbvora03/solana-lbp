@@ -6,9 +6,11 @@ use anchor_lang::prelude::*;
 pub mod instructions;
 pub mod state;
 pub mod errors;
+pub mod utils;
 
 use instructions::*;
 use state::*;
+
 
 declare_id!("CP9AxdoRRY2Rmi9ZDRUqsvZJSwzJ6iZRa3WWajH3YGqf");
 
