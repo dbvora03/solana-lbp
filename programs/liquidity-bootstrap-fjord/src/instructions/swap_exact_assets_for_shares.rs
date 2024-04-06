@@ -7,6 +7,13 @@ use anchor_lang::error_code;
 pub enum ErrorCode {
   #[msg("The pool has already been initialized.")]
   AlreadyInitialized,
+  #[msg("Slippage Exceeded")]
+  SlippageExceeded,
+  #[msg("Max Assets In Exceeded")]
+  MaxAssetsInExceeded,
+  #[msg("Max Shares Exceeded")]
+  MaxSharesExceeded,
+  
 }
 
 #[event]
@@ -18,32 +25,61 @@ pub struct Buy {
 }
 
 #[derive(Accounts)]
+#[instruction(referrer: Pubkey)]
 pub struct SwapExactAssetsForShares<'info> {
   #[account(mut)]
   pub depositor: Signer<'info>,
+
   #[account(mut)]
   pub pool: Account<'info, Pool>,
-  #[account(mut)]
-  pub pool_account_asset: Account<'info, TokenAccount>,
-  #[account(mut)]
-  pub pool_account_share: Account<'info, TokenAccount>,
-  #[account(mut)]
-  pub depositor_account_asset: Account<'info, TokenAccount>,
-  #[account(mut)]
-  pub depositor_account_share: Account<'info, TokenAccount>,
 
-  // The liquidity pool manager info account
+  #[account(mut)]
+  pub pool_assets_account: Account<'info, TokenAccount>,
+
+  #[account(mut)]
+  pub pool_shares_account: Account<'info, TokenAccount>,
+
+  #[account(mut)]
+  pub depositor_asset_account: Account<'info, TokenAccount>,
+
+  #[account(
+    init,
+    seeds = [
+      b"user_stats".as_ref(),
+      &pool.key().as_ref(),
+      &depositor.key().as_ref(),
+    ],
+    payer = depositor,
+    space = 8 + 32 + 32 + 8 + 8 + 1,
+    bump
+  )]
+  pub buyer_stats: Box<Account<'info, UserStats>>,
+
+  #[account(
+    init,
+    seeds = [
+      b"user_stats".as_ref(),
+      &pool.key().as_ref(),
+      &referrer.key().as_ref(),
+    ],
+    payer = depositor,
+    space = 8 + 32 + 32 + 8 + 8 + 1,
+    bump,
+  )]
+  pub referrer_stats: Box<Account<'info, UserStats>>,
+
   pub lbp_manager_info: Account<'info, LBPManagerInfo>,
-  
+
   pub token_program: Program<'info, Token>,
+  pub rent: Sysvar<'info, Rent>,
   pub system_program: Program<'info, System>,
 }
 
 
 pub fn handler(
   ctx: Context<SwapExactAssetsForShares>,
-  assetsIn: u64,
-  minSharesOut: u64,
+  assets_in: u64,
+  min_shares_out: u64,
   recipient: Pubkey,
   referrer: Pubkey  
 ) -> Result<()> {
@@ -51,46 +87,53 @@ pub fn handler(
   let pool = &mut ctx.accounts.pool;
   let lbp_manager_info = &mut ctx.accounts.lbp_manager_info;
 
-  let swap_fee: u64 = assetsIn * (lbp_manager_info.swap_fee);
+  let swap_fee: u64 = assets_in * (lbp_manager_info.swap_fee);
   pool.total_swap_fees_asset += swap_fee;
 
-  let shares_out: u64 = (assetsIn - swap_fee) * (1_000_000_000 - swap_fee);
+  let assets: u64 = ctx.accounts.pool_assets_account.amount;
+  let shares: u64 = ctx.accounts.pool_shares_account.amount;
+  let buyer_stats = &mut ctx.accounts.buyer_stats;
+  let referrer_stats = &mut ctx.accounts.referrer_stats;
 
-  if shares_out < minSharesOut {
-    return err!(ErrorCode::AlreadyInitialized);
-    // return Err(ErrorCode::MinSharesNotMet.into());
+
+  let shares_out: u64 = 0;
+
+  if shares_out < min_shares_out {
+    return err!(ErrorCode::SlippageExceeded);
   }
 
-  let assets: u64 = 10; // TODO: Do the math here with the accounts
+  let assets_in: u64 = preview_shares_out(pool, assets_in, assets, shares); // TODO: Do the math here with the accounts
 
-  // if (assets + assetsIn - swap_fee >= pool.settings.max_assets_in) {
-  //   return Err(ErrorCode::MaxAssetsInExceeded.into());
-  // }
+  if assets + assets_in - swap_fee >= pool.settings.max_assets_in {
+    return err!(ErrorCode::MaxAssetsInExceeded);
+  }
+
 
   token::transfer(
     CpiContext::new(
         ctx.accounts.token_program.to_account_info(),
         Transfer {
-            from: ctx.accounts.depositor_account_asset.to_account_info(),
-            to: ctx.accounts.pool_account_asset.to_account_info(),
+            from: ctx.accounts.depositor_asset_account.to_account_info(),
+            to: ctx.accounts.pool_assets_account.to_account_info(),
             authority: ctx.accounts.depositor.to_account_info(),
         },
     ),
-    assetsIn,
+    assets_in,
   )?;
 
-  let total_purchased_after: u64 = pool.total_purchased + shares_out;
+  let total_purchased_after = pool.total_purchased + shares_out;
+
+  if total_purchased_after >= pool.settings.max_shares_out || total_purchased_after > shares {
+    return err!(ErrorCode::MaxSharesExceeded);
+  }
 
   pool.total_purchased = total_purchased_after;
+  buyer_stats.purchased += shares_out;
 
-  // TODO: Create PDA if it doesnt exist and add shares to it
+  if recipient != Pubkey::default() && lbp_manager_info.referrer_fee > 0 {
+    let assets_referred: u64 = assets_in * lbp_manager_info.referrer_fee;
+    referrer_stats.referred_amount += assets_referred;
+  }
 
-  emit!(Buy {
-    caller: *ctx.accounts.depositor.key,
-    assets: assetsIn,
-    shares: shares_out,
-    swap_fee: swap_fee,
-  });
-  
-  Ok(()) 
+  Ok(assets_in) 
 }

@@ -1,8 +1,25 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, TokenAccount, Transfer, Mint};
+use anchor_spl::token::{self, TokenAccount, Transfer, Token};
 
 use crate::state::*;
 use crate::utils::*;
+
+#[error_code]
+pub enum ErrorCode {
+  #[msg("The pool has already been initialized.")]
+  AlreadyInitialized,
+  #[msg("Slippage Exceeded")]
+  SlippageExceeded,
+
+  #[msg("Max Assets In Exceeded")]
+  MaxAssetsInExceeded,
+
+  #[msg("Max Shares Exceeded")]
+  MaxSharesExceeded,
+
+  #[msg("Math Error")]
+  MathError,
+}
 
 #[derive(Accounts)]
 #[instruction(referrer: Pubkey)]
@@ -35,8 +52,6 @@ pub struct SwapAssetsForExactShares<'info> {
   )]
   pub buyer_stats: Box<Account<'info, UserStats>>,
 
-  pub system_program: Program<'info, System>,
-
   #[account(
     init,
     seeds = [
@@ -49,6 +64,12 @@ pub struct SwapAssetsForExactShares<'info> {
     bump,
   )]
   pub referrer_stats: Box<Account<'info, UserStats>>,
+
+  pub lbp_manager_info: Account<'info, LBPManagerInfo>,
+
+  pub token_program: Program<'info, Token>,
+  pub rent: Sysvar<'info, Rent>,
+  pub system_program: Program<'info, System>,
 }
 
 pub fn handler (
@@ -56,13 +77,10 @@ pub fn handler (
   shares_out: u64,
   max_assets_in: u64,
   recipient: Pubkey,
-) -> Result<()> {
-
-
-
+) -> Result<u64> {
   // Get the pool and manager
   let pool = &mut ctx.accounts.pool;
-  let manager = &mut ctx.accounts.lbp_manager;
+  let manager = &mut ctx.accounts.lbp_manager_info;
   let buyer_stats = &mut ctx.accounts.buyer_stats;
   let referrer_stats = &mut ctx.accounts.referrer_stats;
 
@@ -70,10 +88,14 @@ pub fn handler (
   let shares: u64 = ctx.accounts.pool_shares_account.amount;
 
   // Preview the assets in
-  let mut assets_in = compute_reservers_and_weights(pool, 0, 0);
+  let mut assets_in_result = preview_assets_in(pool, shares_out, assets, shares);
+  if assets_in_result.is_err() {
+    return err!(ErrorCode::MathError);
+  }
+  let mut assets_in = assets_in_result.unwrap();
 
   // Calculate the swap fee
-  let swap_fees: u64 = assets_in * pool.swap_fee;
+  let swap_fees: u64 = assets_in * manager.swap_fee;
 
   // Add to Assets In
   assets_in += swap_fees;
@@ -82,10 +104,13 @@ pub fn handler (
   pool.total_swap_fees_asset += swap_fees;
 
   // Add slippage error function
+  if assets_in > max_assets_in {
+    return err!(ErrorCode::SlippageExceeded);
+  }
 
   // Call the swapAssetsForExactShares function 
   if assets + assets_in - swap_fees >= pool.settings.max_assets_in {
-    return Err(ErrorCode::MaxAssetsInExceeded.into());
+    return err!(ErrorCode::MaxAssetsInExceeded);
   }
 
   token::transfer(
@@ -93,7 +118,7 @@ pub fn handler (
         ctx.accounts.token_program.to_account_info(),
         Transfer {
             from: ctx.accounts.depositor_asset_account.to_account_info(),
-            to: ctx.accounts.pool_account_asset.to_account_info(),
+            to: ctx.accounts.pool_assets_account.to_account_info(),
             authority: ctx.accounts.depositor.to_account_info(),
         },
     ),
@@ -102,8 +127,8 @@ pub fn handler (
 
   let total_purchased_after = pool.total_purchased + shares_out;
 
-  if total_purchased_after >= pool.settings.max_shares || total_purchased_after > shares {
-    return Err(ErrorCode::MaxSharesExceeded.into());
+  if total_purchased_after >= pool.settings.max_shares_out || total_purchased_after > shares {
+    return err!(ErrorCode::MaxSharesExceeded);
   }
 
   pool.total_purchased = total_purchased_after;
@@ -117,5 +142,5 @@ pub fn handler (
 
   // TODO: Emit an event here
 
-  Ok(())
+  Ok(assets_in)
 }

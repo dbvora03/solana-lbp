@@ -79,6 +79,21 @@ describe("liquidity-bootstrap-fjord", () => {
       6
     );
 
+    const fund = async (pubkey) => {
+      const airdropSignature = await provider.connection.requestAirdrop(
+        pubkey,
+        20 * 1_000_000_000
+      );
+
+      const latestBlockHash = await provider.connection.getLatestBlockhash();
+
+      await provider.connection.confirmTransaction({
+        blockhash: latestBlockHash.blockhash,
+        lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+        signature: airdropSignature,
+      });
+    };
+
     const depositorAssetTokenAccount =
       await splToken.createAssociatedTokenAccount(
         provider.connection,
@@ -95,19 +110,44 @@ describe("liquidity-bootstrap-fjord", () => {
         depositor.publicKey
       );
 
-    const poolAssetTokenAccount = await splToken.createAssociatedTokenAccount(
-      provider.connection,
-      (provider.wallet as NodeWallet).payer,
-      assetMint,
-      lbpManagerPda
+    const [pool_account_address] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        anchor.utils.bytes.utf8.encode("pool"),
+        lbpManagerPda.toBuffer(),
+        assetMint.toBuffer(),
+        shareMint.toBuffer(),
+      ],
+      program.programId
     );
 
-    const poolShareTokenAccount = await splToken.createAssociatedTokenAccount(
-      provider.connection,
-      (provider.wallet as NodeWallet).payer,
-      shareMint,
-      lbpManagerPda
-    );
+    const poolAssetKp = anchor.web3.Keypair.generate();
+    const poolShareKp = anchor.web3.Keypair.generate();
+
+    await fund(depositor.publicKey);
+
+    // const poolAssetTokenAccount = await splToken.getAssociatedTokenAddress(
+    //   assetMint,
+    //   poolAssetKp.publicKey
+    // );
+
+    // const poolShareTokenAccount = await splToken.getAssociatedTokenAddress(
+    //   shareMint,
+    //   poolShareKp.publicKey
+    // );
+
+    // const poolAssetTokenAccount = await splToken.createAssociatedTokenAccount(
+    //   provider.connection,
+    //   (provider.wallet as NodeWallet).payer,
+    //   assetMint,
+    //   poolAssetKp.publicKey
+    // );
+
+    // const poolShareTokenAccount = await splToken.createAssociatedTokenAccount(
+    //   provider.connection,
+    //   (provider.wallet as NodeWallet).payer,
+    //   shareMint,
+    //   poolShareKp.publicKey
+    // );
 
     await splToken.mintTo(
       provider.connection,
@@ -127,20 +167,12 @@ describe("liquidity-bootstrap-fjord", () => {
       2000000000
     );
 
-    const [pool_account_address] = anchor.web3.PublicKey.findProgramAddressSync(
-      [
-        anchor.utils.bytes.utf8.encode("pool"),
-        lbpManagerPda.toBuffer(),
-        assetMint.toBuffer(),
-        shareMint.toBuffer(),
-      ],
-      program.programId
-    );
-
     const tx = await program.methods
-      .createPool({
-        //TODO: Add in setting variable
-      }, 1000000000, 2000000000, 1)
+      .createPoolDupe(
+        new anchor.BN(1000000000),
+        new anchor.BN(1000000000),
+        new anchor.BN(2000000000)
+      )
       .accounts({
         depositor: depositor.publicKey,
         assetMint,
@@ -149,11 +181,13 @@ describe("liquidity-bootstrap-fjord", () => {
         depositorAccountShare: depositorShareTokenAccount,
         lbpManagerInfo: lbpManagerPda,
         pool: pool_account_address,
-        poolAccountAsset: poolAssetTokenAccount,
-        poolAccountShare: poolShareTokenAccount,
+        poolAccountAsset: poolAssetKp.publicKey,
+        poolAccountShare: poolShareKp.publicKey,
         tokenProgram: splToken.TOKEN_PROGRAM_ID,
         rent: SYSVAR_RENT_PUBKEY,
         systemProgram: anchor.web3.SystemProgram.programId,
-      });
+      })
+      .signers([depositor, poolAssetKp, poolShareKp])
+      .rpc();
   });
 });

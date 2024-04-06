@@ -44,5 +44,13 @@ pub mod liquidity_bootstrap_fjord {
     pub fn create_pool(ctx: Context<CreatePool>, settings: PoolSettings, shares: u64, assets: u64, id: u64) -> Result<()> {
         instructions::create_pool::handler(ctx, settings, shares, assets)
     }
+
+    pub fn create_pool_dupe(ctx: Context<CreatePoolDupe>, shares: u64, assets: u64, id: u64) -> Result<()> {
+        instructions::create_pool_dupe::handler(ctx, shares, assets)
+    }
+
+    pub fn preview_assets_in(ctx: Context<PreviewAssetsIn>, shares_out: u64) -> Result<u64> {
+        instructions::preview_assets_in::handler(ctx, shares_out)
+    }
 }
 

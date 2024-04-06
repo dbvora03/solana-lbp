@@ -19,6 +19,6 @@ describe("swap", () => {
   it("swaps exact assets for shares", async () => {
     // go to sale start
     const sharesOut = 1 * 10 ** 6;
-    const maxAssetsIn = program.methods.previewAssetsIn(sharesOut);
+    // const maxAssetsIn = program.methods.preview_assets_in(sharesOut);
   });
 });
