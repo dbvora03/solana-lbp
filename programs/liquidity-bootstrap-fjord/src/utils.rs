@@ -1,4 +1,5 @@
 use anchor_lang::prelude::Clock;
+use crate::state::*;
 
 pub fn linear_interpolation(x: u64, y: u64, i: u64, n: u64) -> u64 {
   if x > y {
@@ -14,10 +15,10 @@ pub fn compute_reservers_and_weights(
   shares: u64,
 ) -> (u64, u64, u64, u64) {
 
-  u64 asset_reserve = assets + pool.settings.virtual_assets;
-  u64 share_reserve = shares + pool.settings.virtual_shares - pool.total_purchased;
+  let asset_reserve: u64 = assets + pool.settings.virtual_assets;
+  let share_reserve: u64 = shares + pool.settings.virtual_shares - pool.total_purchased;
 
-  u64 total_seconds = pool.settings.sale_end - pool.settings.sale_start;
+  let total_seconds: u64 = pool.settings.sale_end - pool.settings.sale_start;
 
   let mut seconds_elapsed: u64 = 0;
   let clock = Clock::get()?;

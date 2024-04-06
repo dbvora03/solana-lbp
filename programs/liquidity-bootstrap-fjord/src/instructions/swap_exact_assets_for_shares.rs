@@ -1,3 +1,6 @@
+use anchor_lang::prelude::*;
+use anchor_spl::token::{self, TokenAccount, Transfer, Mint, Token};
+use crate::state::*;
 
 #[derive(Accounts)]
 pub struct SwapExactAssetsForShares<'info> {
@@ -25,7 +28,7 @@ pub fn handler(
   minSharesOut: u64,
   recipient: Pubkey,
   referrer: Pubkey  
-) -> Result<()> {
+) -> Result<(), E> {
 
   let pool = &mut ctx.accounts.pool;
   let lbp_manager_info = &mut ctx.accounts.lbp_manager_info;
