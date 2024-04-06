@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{TokenAccount, Token};
+use anchor_spl::token::{self, TokenAccount, Token, Transfer};
 use crate::state::*;
 
 #[derive(Accounts)]
@@ -33,16 +33,16 @@ pub fn handler(
   let pool = &mut ctx.accounts.pool;
   let lbp_manager_info = &mut ctx.accounts.lbp_manager_info;
 
-  u64 swap_fee = assetsIn * (lbp_manager_info.swap_fee);
+  let swap_fee: u64 = assetsIn * (lbp_manager_info.swap_fee);
   pool.total_swap_fees_asset += swap_fee;
 
-  u64 shares_out = (assetsIn - swap_fee) * (1_000_000_000 - swap_fee);
+  let shares_out: u64 = (assetsIn - swap_fee) * (1_000_000_000 - swap_fee);
 
   if (shares_out < minSharesOut) {
     return Err(ErrorCode::MinSharesNotMet.into());
   }
 
-  u64 assets = 10 // TODO: Do the math here with the accounts
+  let assets: u64 = 10; // TODO: Do the math here with the accounts
 
   if (assets + assetsIn - swap_fee >= pool.settings.max_assets_in) {
     return Err(ErrorCode::MaxAssetsInExceeded.into());
@@ -60,7 +60,7 @@ pub fn handler(
     assetsIn,
   )?;
 
-  u64 total_purchased_after = total_purchased + shares_out;
+  let total_purchased_after: u64 = pool.total_purchased + shares_out;
 
   pool.total_purchased = total_purchased_after;
 

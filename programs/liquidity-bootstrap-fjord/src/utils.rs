@@ -26,12 +26,12 @@ pub fn compute_reservers_and_weights(
     seconds_elapsed = clock.unix_timestamp - pool.settings.sale_start;
   }
 
-  asset_weight = linear_interpolation(
+  let asset_weight: u64 = linear_interpolation(
     pool.settings.weight_start,
     pool.settings.weight_end,
     seconds_elapsed,
     total_seconds
-  )
+  );
 
   let share_weight: u64 = 1_000_000_000 - asset_weight;
 
