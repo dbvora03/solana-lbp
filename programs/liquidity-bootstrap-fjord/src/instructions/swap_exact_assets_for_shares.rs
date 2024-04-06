@@ -1,6 +1,13 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, TokenAccount, Token, Transfer};
 use crate::state::*;
+use anchor_lang::error_code;
+
+#[error_code]
+pub enum ErrorCode {
+  #[msg("The pool has already been initialized.")]
+  AlreadyInitialized,
+}
 
 #[derive(Accounts)]
 pub struct SwapExactAssetsForShares<'info> {
@@ -41,9 +48,10 @@ pub fn handler(
 
   let shares_out: u64 = (assetsIn - swap_fee) * (1_000_000_000 - swap_fee);
 
-  // if (shares_out < minSharesOut) {
-  //   return Err(ErrorCode::MinSharesNotMet.into());
-  // }
+  if shares_out < minSharesOut {
+    return err!(ErrorCode::AlreadyInitialized);
+    // return Err(ErrorCode::MinSharesNotMet.into());
+  }
 
   let assets: u64 = 10; // TODO: Do the math here with the accounts
 
@@ -69,6 +77,5 @@ pub fn handler(
 
   // TODO: Create PDA if it doesnt exist and add shares to it
   
-
-  
+  Ok(()) 
 }

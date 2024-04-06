@@ -21,10 +21,14 @@ pub fn compute_reservers_and_weights(
   let total_seconds: u64 = pool.settings.sale_end - pool.settings.sale_start;
 
   let mut seconds_elapsed: u64 = 0;
-  let clock = Clock::get()?;
-  if clock.unix_timestamp > pool.settings.sale_start {
-    seconds_elapsed = clock.unix_timestamp - pool.settings.sale_start;
-  }
+  let unix_timestamp = match Clock::get() {
+    Ok(clock) => clock.unix_timestamp,
+    Err(_) => return (0, 0, 0, 0),
+  };
+
+  if unix_timestamp as i128 > pool.settings.sale_start as i128 {
+    seconds_elapsed = (unix_timestamp as i128 - pool.settings.sale_start as i128) as u64;
+}
 
   let asset_weight: u64 = linear_interpolation(
     pool.settings.weight_start,
