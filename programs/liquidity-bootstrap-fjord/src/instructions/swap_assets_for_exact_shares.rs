@@ -62,9 +62,6 @@ pub fn handler (
   max_assets_in: u64,
   recipient: Pubkey,
 ) -> Result<u64> {
-  // test
-  // let assets_in = 0;
-
   // Get the pool and manager
   let pool = &mut ctx.accounts.pool;
   let manager = &mut ctx.accounts.lbp_manager_info;
