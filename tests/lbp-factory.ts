@@ -94,9 +94,9 @@ describe.only("liquidity-bootstrap-pool-factory", () => {
           .initialize(
             new anchor.BN(1),
             fee_recipient,
-            new anchor.BN(1000000000),
-            new anchor.BN(1000000000),
-            new anchor.BN(1000000000)
+            new anchor.BN(1000),
+            new anchor.BN(1000),
+            new anchor.BN(1000)
           )
           .accounts({
             authority: fee_recipient,
