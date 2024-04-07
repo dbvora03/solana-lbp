@@ -71,7 +71,7 @@ pub fn scale_token_before(
   amount: u64
 ) -> u64 {
   // TODO: hardcode now, figure out later
-  let decimals: u32 = 9;
+  let decimals: u32 = 6;
   let base_decimals: u32 = 9;
   let mut scaled_amount: u64 = amount;
   if decimals < base_decimals {
@@ -89,7 +89,7 @@ pub fn scale_token_after(
   amount: u64
 ) -> u64 {
   // TODO: hardcode now, figure out later
-  let decimals: u32 = 9;
+  let decimals: u32 = 6;
   let base_decimals: u32 = 9;
   let mut scaled_amount: u64 = amount;
   if decimals < base_decimals {
@@ -103,17 +103,21 @@ pub fn scale_token_after(
 }
 
 pub fn get_amount_in(amount_out: u64, reserve_in: u64, reserve_out: u64, weight_in: u64, weight_out: u64) -> Result<u64> {
+  // test
+  let res = 0;
+
   let MAX_PERCENTAGE_OUT: u64 = (0.3 * SOL) as u64;
+  msg!("Message logged: {} {} {}", amount_out, reserve_out, MAX_PERCENTAGE_OUT);
   if amount_out > reserve_out * MAX_PERCENTAGE_OUT {
     return err!(ErrorCode::AmountOutTooLarge);
   }
-  // TODO: check if this can be a problem, u32 required for rust pow
-  let div_result = weight_in / weight_out;
-  if div_result > u32::MAX as u64 {
-    return err!(ErrorCode::NotSafeForPow);
-  }
-  let div_result_u32 = div_result as u32;
-  let res: u64 = reserve_in * ((reserve_out / (reserve_out - amount_out)).pow(div_result_u32) - (SOL as u64));
+  // // TODO: check if this can be a problem, u32 required for rust pow
+  // let div_result = weight_in / weight_out;
+  // if div_result > u32::MAX as u64 {
+  //   return err!(ErrorCode::NotSafeForPow);
+  // }
+  // let div_result_u32 = div_result as u32;
+  // let res: u64 = reserve_in * ((reserve_out / (reserve_out - amount_out)).pow(div_result_u32) - (SOL as u64));
   Ok(res)
 }
 
@@ -136,19 +140,22 @@ pub fn get_amount_out(amount_in: u64, reserve_in: u64, reserve_out: u64, weight_
 }
 
 pub fn preview_assets_in(pool: &Pool, shares_out: u64, assets:u64, shares: u64) -> Result<u64> {
+  // test
+  let assets_in = 0;
+
   let (asset_reserve, share_reserve, asset_weight, share_weight) = compute_reserves_and_weights(&pool, assets, shares);
   let (asset_reserve_scaled, share_reserve_scaled) = scaled_reserves(pool, asset_reserve, share_reserve);
   let shares_out_scaled = scale_token_before(pool.settings.share, shares_out);
   let assets_in_result = get_amount_in(shares_out_scaled, asset_reserve_scaled, share_reserve_scaled, asset_weight, share_weight);
-  if assets_in_result.is_err() {
-    return Err(assets_in_result.unwrap_err());
-  }
-  let mut assets_in = assets_in_result.unwrap();
-  let max_share_price = pool.settings.max_share_price;
-  if assets_in / shares_out_scaled > max_share_price {
-    assets_in = shares_out_scaled / max_share_price;
-  }
-  assets_in = scale_token_after(pool.settings.asset, assets_in);
+  // if assets_in_result.is_err() {
+  //   return Err(assets_in_result.unwrap_err());
+  // }
+  // let mut assets_in = assets_in_result.unwrap();
+  // let max_share_price = pool.settings.max_share_price;
+  // if assets_in / shares_out_scaled > max_share_price {
+  //   assets_in = shares_out_scaled / max_share_price;
+  // }
+  // assets_in = scale_token_after(pool.settings.asset, assets_in);
   Ok(assets_in)
 }
 

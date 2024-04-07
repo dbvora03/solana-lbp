@@ -885,7 +885,6 @@ describe("liquidity-bootstrap-pool-factory", () => {
         }
     });
 
-
     it("should revert for invalid fee recipient", async () => {
         // TODO: don't understand this
     });

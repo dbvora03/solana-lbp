@@ -57,10 +57,14 @@ pub struct SwapAssetsForExactShares<'info> {
 
 pub fn handler (
   ctx: Context<SwapAssetsForExactShares>,
+  referrer: Pubkey,
   shares_out: u64,
   max_assets_in: u64,
   recipient: Pubkey,
 ) -> Result<u64> {
+  // test
+  let assets_in = 0;
+
   // Get the pool and manager
   let pool = &mut ctx.accounts.pool;
   let manager = &mut ctx.accounts.lbp_manager_info;
@@ -75,52 +79,52 @@ pub fn handler (
   if assets_in_result.is_err() {
     return err!(ErrorCode::MathError);
   }
-  let mut assets_in = assets_in_result.unwrap();
+  // let mut assets_in = assets_in_result.unwrap();
 
-  // Calculate the swap fee
-  let swap_fees: u64 = assets_in * manager.swap_fee;
+  // // Calculate the swap fee
+  // let swap_fees: u64 = assets_in * manager.swap_fee;
 
-  // Add to Assets In
-  assets_in += swap_fees;
+  // // Add to Assets In
+  // assets_in += swap_fees;
 
-  // Increment totalSwapFeesAsset
-  pool.total_swap_fees_asset += swap_fees;
+  // // Increment totalSwapFeesAsset
+  // pool.total_swap_fees_asset += swap_fees;
 
-  // Add slippage error function
-  if assets_in > max_assets_in {
-    return err!(ErrorCode::SlippageExceeded);
-  }
+  // // Add slippage error function
+  // if assets_in > max_assets_in {
+  //   return err!(ErrorCode::SlippageExceeded);
+  // }
 
-  // Call the swapAssetsForExactShares function 
-  if assets + assets_in - swap_fees >= pool.settings.max_assets_in {
-    return err!(ErrorCode::MaxAssetsInExceeded);
-  }
+  // // Call the swapAssetsForExactShares function 
+  // if assets + assets_in - swap_fees >= pool.settings.max_assets_in {
+  //   return err!(ErrorCode::MaxAssetsInExceeded);
+  // }
 
-  token::transfer(
-    CpiContext::new(
-        ctx.accounts.token_program.to_account_info(),
-        Transfer {
-            from: ctx.accounts.depositor_asset_account.to_account_info(),
-            to: ctx.accounts.pool_assets_account.to_account_info(),
-            authority: ctx.accounts.depositor.to_account_info(),
-        },
-    ),
-    assets_in,
-  )?;
+  // token::transfer(
+  //   CpiContext::new(
+  //       ctx.accounts.token_program.to_account_info(),
+  //       Transfer {
+  //           from: ctx.accounts.depositor_asset_account.to_account_info(),
+  //           to: ctx.accounts.pool_assets_account.to_account_info(),
+  //           authority: ctx.accounts.depositor.to_account_info(),
+  //       },
+  //   ),
+  //   assets_in,
+  // )?;
 
-  let total_purchased_after = pool.total_purchased + shares_out;
+  // let total_purchased_after = pool.total_purchased + shares_out;
 
-  if total_purchased_after >= pool.settings.max_shares_out || total_purchased_after > shares {
-    return err!(ErrorCode::MaxSharesExceeded);
-  }
+  // if total_purchased_after >= pool.settings.max_shares_out || total_purchased_after > shares {
+  //   return err!(ErrorCode::MaxSharesExceeded);
+  // }
 
-  pool.total_purchased = total_purchased_after;
-  buyer_stats.purchased += shares_out;
+  // pool.total_purchased = total_purchased_after;
+  // buyer_stats.purchased += shares_out;
 
-  if recipient != Pubkey::default() && manager.referrer_fee > 0 {
-    let assets_referred: u64 = assets_in * manager.referrer_fee;
-    referrer_stats.referred_amount += assets_referred;
-  }
+  // if recipient != Pubkey::default() && manager.referrer_fee > 0 {
+  //   let assets_referred: u64 = assets_in * manager.referrer_fee;
+  //   referrer_stats.referred_amount += assets_referred;
+  // }
 
 
   // TODO: Emit an event here
