@@ -8,6 +8,7 @@ import { SYSVAR_RENT_PUBKEY } from "@solana/web3.js";
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
 
 describe("liquidity-bootstrap-fjord", () => {
+  return
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env();
 

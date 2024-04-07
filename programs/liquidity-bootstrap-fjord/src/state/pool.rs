@@ -21,6 +21,7 @@ pub struct PoolSettings {
 
 #[account]
 pub struct Pool {
+  pub id: u64, // 8
   pub settings: PoolSettings,
   pub initialized: bool, // 1
   pub total_swap_fees_asset: u64, // 8

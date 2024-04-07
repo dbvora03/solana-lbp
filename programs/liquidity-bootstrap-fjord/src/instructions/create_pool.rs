@@ -32,16 +32,18 @@ pub struct CreatePool<'info> {
 
     // The liquidity pool manager info account
     pub lbp_manager_info: Account<'info, LBPManagerInfo>,
+    
     #[account(
       init,
       seeds = [
         b"pool".as_ref(),
         &lbp_manager_info.to_account_info().key().to_bytes(),
         &asset_mint.key().as_ref(),
-        &share_mint.key().as_ref()
+        &share_mint.key().as_ref(),
+        &id.to_le_bytes().as_ref(),
       ],
       payer = depositor,
-      space = 8 + 32 + 32 + 32 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 1 + (1 + 8 + 8 + 1),
+      space = 8 + 32 + 32 + 32 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 1 + (8 + 1 + 8 + 8 + 8 + 1),
       bump,
     )]
     pub pool: Box<Account<'info, Pool>>,
@@ -68,7 +70,7 @@ pub struct CreatePool<'info> {
 }
 
 
-pub fn handler(ctx: Context<CreatePool>, settings: PoolSettings, shares: u64, assets: u64) -> Result<()> {
+pub fn handler(ctx: Context<CreatePool>, settings: PoolSettings, id: u64, shares: u64, assets: u64) -> Result<()> {
   let pool = &mut ctx.accounts.pool;
   if pool.initialized {
     return err!(ErrorCode::AlreadyInitialized);
@@ -80,6 +82,7 @@ pub fn handler(ctx: Context<CreatePool>, settings: PoolSettings, shares: u64, as
 
   // TODO: Do all the validation in here
   pool.settings = settings;
+  pool.id = id;
   pool.initialized = true;
   pool.bump = ctx.bumps.pool;
 
