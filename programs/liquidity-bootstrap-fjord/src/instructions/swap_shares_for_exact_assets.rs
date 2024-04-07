@@ -9,16 +9,31 @@ pub struct SwapSharesForExactAssets<'info> {
   #[account(mut)]
   pub depositor: Signer<'info>,
 
-  #[account(mut)]
+  #[account(
+    mut,
+    constraint = pool.lbp_manager == lbp_manager_info.key()
+  )]
   pub pool: Account<'info, Pool>,
 
-  #[account(mut)]
+  #[account(
+    mut,
+    constraint = pool_assets_account.mint == pool.settings.asset,
+    constraint = pool_assets_account.owner == pool.to_account_info().key(),
+  )]
   pub pool_assets_account: Account<'info, TokenAccount>,
 
-  #[account(mut)]
+  #[account(
+    mut,
+    constraint = pool_shares_account.mint == pool.settings.share,
+    constraint = pool_shares_account.owner == pool.to_account_info().key(),
+  )]
   pub pool_shares_account: Account<'info, TokenAccount>,
 
-  #[account(mut)]
+  #[account(
+    mut,
+    constraint = depositor_assets_account.mint == pool.settings.asset,
+    constraint = depositor_assets_account.owner == depositor.key(),
+  )]
   pub depositor_assets_account: Account<'info, TokenAccount>,
 
   #[account(
@@ -64,20 +79,20 @@ pub fn handler(
 
   let mut shares_in: u64 = shares_in_result.unwrap();
 
-  let swap_fees = shares_in * manager.swap_fee;
-  shares_in += swap_fees;
+  let swap_fee = shares_in * manager.swap_fee;
+  shares_in += swap_fee;
 
-  if (shares_in > max_shares_in) {
+  if shares_in > max_shares_in {
     return err!(ErrorCode::SlippageExceeded);
   }
 
-  if (assets >= pool.settings.max_assets_in) {
+  if assets >= pool.settings.max_assets_in {
     return err!(ErrorCode::MaxAssetsInExceeded);
   }
 
   let total_purchased_before = pool.total_purchased;
 
-  if (total_purchased_before >= pool.settings.max_shares_out || total_purchased_before > shares) {
+  if total_purchased_before >= pool.settings.max_shares_out || total_purchased_before > shares {
     return err!(ErrorCode::MaxSharesExceeded);
   }
 
@@ -97,7 +112,12 @@ pub fn handler(
     assets_out,
   )?;
 
-  // TODO: Emit an event here
+  emit!(Sell {
+    caller: *ctx.accounts.depositor.to_account_info().key,
+    shares: shares_in,
+    assets: assets_out,
+    swap_fee: swap_fee
+  });
 
   Ok(shares_in)
 }

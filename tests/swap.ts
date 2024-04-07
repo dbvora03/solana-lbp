@@ -220,9 +220,9 @@ describe.only("swap", () => {
           .initialize(
             managerId,
             fee_recipient,
-            new anchor.BN(1000000000),
-            new anchor.BN(1000000000),
-            new anchor.BN(1000000000)
+            new anchor.BN(1000),
+            new anchor.BN(1000),
+            new anchor.BN(1000)
           )
           .accounts({
             authority: fee_recipient,
@@ -277,7 +277,7 @@ describe.only("swap", () => {
       pool: poolAccountAddress,
       poolAssetsAccount: poolAssetKp.publicKey,
       poolSharesAccount: poolShareKp.publicKey,
-      depositorAssetAccount: depositorAssetTokenAccount,
+      depositorAssetsAccount: depositorAssetTokenAccount,
       buyerStats: buyerStatsPda,
       referrerStats: referrerStatsPda,
       lbpManagerInfo: lbpManagerPda,

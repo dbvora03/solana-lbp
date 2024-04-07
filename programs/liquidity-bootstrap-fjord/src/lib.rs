@@ -11,7 +11,6 @@ pub mod utils;
 use instructions::*;
 use state::*;
 
-
 declare_id!("CP9AxdoRRY2Rmi9ZDRUqsvZJSwzJ6iZRa3WWajH3YGqf");
 
 #[program]
@@ -33,6 +32,14 @@ pub mod liquidity_bootstrap_fjord {
         instructions::set_swap_fee::handler(ctx, new_fee)
     }
 
+    pub fn set_referrer_fee(ctx: Context<SetReferrerFee>, new_fee: u64) -> Result<()> {
+        instructions::set_referrer_fee::handler(ctx, new_fee)
+    }
+
+    pub fn set_fee_recipient(ctx: Context<SetFeeRecipient>, recipient: Pubkey) -> Result<()> {
+        instructions::set_fee_recipient::handler(ctx, recipient)
+    }
+
     pub fn set_platform_fee(ctx: Context<SetPlatformFee>, new_fee: u64) -> Result<()> {
         instructions::set_platform_fee::handler(ctx, new_fee)
     }
@@ -43,10 +50,6 @@ pub mod liquidity_bootstrap_fjord {
 
     pub fn create_pool(ctx: Context<CreatePool>, settings: PoolSettings, id: u64, shares: u64, assets: u64) -> Result<()> {
         instructions::create_pool::handler(ctx, settings, id, shares, assets)
-    }
-
-    pub fn create_pool_dupe(ctx: Context<CreatePoolDupe>, shares: u64, assets: u64, id: u64) -> Result<()> {
-        instructions::create_pool_dupe::handler(ctx, shares, assets)
     }
 
     pub fn preview_assets_in(ctx: Context<PreviewAssetsIn>, shares_out: u64) -> Result<u64> {
