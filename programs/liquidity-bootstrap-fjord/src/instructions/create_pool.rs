@@ -81,6 +81,15 @@ pub fn handler(ctx: Context<CreatePool>, settings: PoolSettings, id: u64, shares
   // }
 
   // TODO: Do all the validation in here
+  if settings.sale_end < settings.vest_end {
+    if settings.sale_end > settings.vest_cliff {
+      return err!(ErrorCode::InvalidVestCliff);
+    }
+    if settings.vest_cliff >= settings.vest_end {
+      return err!(ErrorCode::InvalidVestEnd);
+    }
+  }
+
   pool.settings = settings;
   pool.id = id;
   pool.initialized = true;

@@ -3,7 +3,7 @@ import * as splToken from "@solana/spl-token";
 
 import { Program } from "@coral-xyz/anchor";
 import { LiquidityBootstrapFjord } from "../target/types/liquidity_bootstrap_fjord";
-import { assert } from "chai";
+import { assert, expect } from "chai";
 import { SYSVAR_RENT_PUBKEY } from "@solana/web3.js";
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
 
@@ -14,6 +14,7 @@ describe("liquidity-bootstrap-pool-factory", () => {
     const BN_2 = new anchor.BN(2);
     const BN_256 = new anchor.BN(256);
     const BN_0 = new anchor.BN(0);
+    const BN_1 = new anchor.BN(1);
 
     const now = new anchor.BN(Math.floor(Date.now() / 1000));
     const saleStart = now.add(ONE_DAY);
@@ -36,8 +37,8 @@ describe("liquidity-bootstrap-pool-factory", () => {
     const initialShareAmount = SOL.mul(new anchor.BN(1000));
     const initialAssetAmount = SOL.mul(new anchor.BN(1000));
 
-    const poolAssetKp = anchor.web3.Keypair.generate();
-    const poolShareKp = anchor.web3.Keypair.generate();
+    let poolAssetKp;
+    let poolShareKp;
 
     let assetMint;
     let shareMint;
@@ -75,15 +76,15 @@ describe("liquidity-bootstrap-pool-factory", () => {
     }
 
     before(async () => {
-        const fee_recipient = provider.wallet.publicKey;
-
         [lbpManagerPda] = anchor.web3.PublicKey.findProgramAddressSync(
-          [
-            anchor.utils.bytes.utf8.encode("lbp-manager"),
-            new anchor.BN(1).toArrayLike(Buffer, "le", 8),
-          ],
-          program.programId
-        );
+            [
+              anchor.utils.bytes.utf8.encode("lbp-manager"),
+              new anchor.BN(1).toArrayLike(Buffer, "le", 8),
+            ],
+            program.programId
+          );
+
+        const fee_recipient = provider.wallet.publicKey;
     
         let tx = await program.methods
           .initialize(
@@ -98,7 +99,9 @@ describe("liquidity-bootstrap-pool-factory", () => {
             lbpManagerInfo: lbpManagerPda,
           })
           .rpc();
+        })
 
+    beforeEach(async () => {
         assetMint = await splToken.createMint(
             provider.connection,
             (provider.wallet as NodeWallet).payer,
@@ -146,12 +149,14 @@ describe("liquidity-bootstrap-pool-factory", () => {
         );
 
         await fund(depositor.publicKey);
+
+        poolAssetKp = anchor.web3.Keypair.generate();
+        poolShareKp = anchor.web3.Keypair.generate();
     });
 
     it("should create vesting pool", async () => {   
         const poolId = new anchor.BN(1);
         const pool_account_address = await get_pool_account_address(poolId);
-        console.log("pool_account_address", pool_account_address.toBase58());
         const vestCliff = saleEnd.add(ONE_DAY);
         const vestEnd = saleEnd.add(TWO_DAYS);
         const poolSettings = {
@@ -197,7 +202,6 @@ describe("liquidity-bootstrap-pool-factory", () => {
     it("should create no vesting pool", async () => {
         const poolId = new anchor.BN(2);
         const pool_account_address = await get_pool_account_address(poolId);
-        console.log("pool_account_address", pool_account_address.toBase58());
         let vestCliff = BN_0;
         let vestEnd = BN_0;
         const poolSettings = {
@@ -238,5 +242,54 @@ describe("liquidity-bootstrap-pool-factory", () => {
         })
         .signers([depositor, poolAssetKp, poolShareKp])
         .rpc()
+    });
+
+    it("should createt vesting pool invalid vest cliff", async () => {
+        const poolId = new anchor.BN(3);
+        const pool_account_address = await get_pool_account_address(poolId);
+        let vestCliff = saleEnd.sub(BN_1);
+        let vestEnd = saleEnd.add(BN_1);
+        const poolSettings = {
+            asset: assetMint,
+            share: shareMint,
+            creator: depositor.publicKey,
+            virtualAssets,
+            virtualShares,
+            maxSharePrice,
+            maxSharesOut,
+            maxAssetsIn,
+            weightStart,
+            weightEnd,
+            saleStart,
+            saleEnd,
+            vestCliff,
+            vestEnd,
+            sellingAllowed,
+        };
+        try {
+            await program.methods.createPool(
+                poolSettings,
+                poolId,
+                initialShareAmount,
+                initialAssetAmount,
+            ).accounts({
+                depositor: depositor.publicKey,
+                assetMint,
+                shareMint,
+                depositorAccountAsset: depositorAssetTokenAccount,
+                depositorAccountShare: depositorShareTokenAccount,
+                lbpManagerInfo: lbpManagerPda,
+                pool: pool_account_address,
+                poolAccountAsset: poolAssetKp.publicKey,
+                poolAccountShare: poolShareKp.publicKey,
+                tokenProgram: splToken.TOKEN_PROGRAM_ID,
+                rent: SYSVAR_RENT_PUBKEY,
+                systemProgram: anchor.web3.SystemProgram.programId,
+            })
+            .signers([depositor, poolAssetKp, poolShareKp])
+            .rpc()
+        } catch (error) {
+            expect(error.error.errorMessage).to.equal("Invalid Vest Cliff");
+        }
     });
 });

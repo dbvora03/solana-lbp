@@ -16,4 +16,10 @@ pub enum ErrorCode {
 
   #[msg("Max Shares Exceeded")]
   MaxSharesExceeded,
+
+  #[msg("Invalid Vest Cliff")]
+  InvalidVestCliff,
+
+  #[msg("Invalid Vest End")]
+  InvalidVestEnd,
 }
