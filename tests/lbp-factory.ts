@@ -19,6 +19,8 @@ describe("liquidity-bootstrap-pool-factory", () => {
     const now = new anchor.BN(Math.floor(Date.now() / 1000));
     const saleStart = now.add(ONE_DAY);
     const saleEnd = now.add(TWO_DAYS);
+    const vestCliff = now.add(ONE_DAY).add(TWO_DAYS);
+    const vestEnd = now.add(TWO_DAYS).add(TWO_DAYS);
 
     const provider = anchor.AnchorProvider.env();
     anchor.setProvider(provider);
@@ -244,7 +246,7 @@ describe("liquidity-bootstrap-pool-factory", () => {
         .rpc()
     });
 
-    it("should createt vesting pool invalid vest cliff", async () => {
+    it("should revert vesting pool invalid vest cliff", async () => {
         const poolId = new anchor.BN(3);
         const pool_account_address = await get_pool_account_address(poolId);
         let vestCliff = saleEnd.sub(BN_1);
@@ -288,8 +290,410 @@ describe("liquidity-bootstrap-pool-factory", () => {
             })
             .signers([depositor, poolAssetKp, poolShareKp])
             .rpc()
+            expect.fail("Should have thrown an error")
         } catch (error) {
             expect(error.error.errorMessage).to.equal("Invalid Vest Cliff");
         }
+    });
+
+    it("should revert vesting pool invalid vest end", async () => {
+        const poolId = new anchor.BN(4);
+        const pool_account_address = await get_pool_account_address(poolId);
+        let vestCliff = saleEnd.add(BN_1).add(BN_1);
+        let vestEnd = saleEnd.add(BN_1).add(BN_1);
+        const poolSettings = {
+            asset: assetMint,
+            share: shareMint,
+            creator: depositor.publicKey,
+            virtualAssets,
+            virtualShares,
+            maxSharePrice,
+            maxSharesOut,
+            maxAssetsIn,
+            weightStart,
+            weightEnd,
+            saleStart,
+            saleEnd,
+            vestCliff,
+            vestEnd,
+            sellingAllowed,
+        };
+        try {
+            await program.methods.createPool(
+                poolSettings,
+                poolId,
+                initialShareAmount,
+                initialAssetAmount,
+            ).accounts({
+                depositor: depositor.publicKey,
+                assetMint,
+                shareMint,
+                depositorAccountAsset: depositorAssetTokenAccount,
+                depositorAccountShare: depositorShareTokenAccount,
+                lbpManagerInfo: lbpManagerPda,
+                pool: pool_account_address,
+                poolAccountAsset: poolAssetKp.publicKey,
+                poolAccountShare: poolShareKp.publicKey,
+                tokenProgram: splToken.TOKEN_PROGRAM_ID,
+                rent: SYSVAR_RENT_PUBKEY,
+                systemProgram: anchor.web3.SystemProgram.programId,
+            })
+            .signers([depositor, poolAssetKp, poolShareKp])
+            .rpc()
+            expect.fail("Should have thrown an error")
+        } catch (error) {
+            expect(error.error.errorMessage).to.equal("Invalid Vest End");
+        }
+    });
+
+    it("should success for zero LBP creation", async () => {
+        let poolId = new anchor.BN(5);
+        let pool_account_address = await get_pool_account_address(poolId);
+        let initialAssetAmount = BN_0;
+        let virtualAssetAmount = SOL;
+        const poolSettings = {
+            asset: assetMint,
+            share: shareMint,
+            creator: depositor.publicKey,
+            virtualAssets: virtualAssetAmount,
+            virtualShares,
+            maxSharePrice,
+            maxSharesOut,
+            maxAssetsIn,
+            weightStart,
+            weightEnd,
+            saleStart,
+            saleEnd,
+            vestCliff,
+            vestEnd,
+            sellingAllowed,
+        };
+        await program.methods.createPool(
+            poolSettings,
+            poolId,
+            initialShareAmount,
+            initialAssetAmount,
+        ).accounts({
+            depositor: depositor.publicKey,
+            assetMint,
+            shareMint,
+            depositorAccountAsset: depositorAssetTokenAccount,
+            depositorAccountShare: depositorShareTokenAccount,
+            lbpManagerInfo: lbpManagerPda,
+            pool: pool_account_address,
+            poolAccountAsset: poolAssetKp.publicKey,
+            poolAccountShare: poolShareKp.publicKey,
+            tokenProgram: splToken.TOKEN_PROGRAM_ID,
+            rent: SYSVAR_RENT_PUBKEY,
+            systemProgram: anchor.web3.SystemProgram.programId,
+        })
+    });
+
+    it("should revert for zero LBP creation invalid virtual asset", async () => {
+        let poolId = new anchor.BN(6);
+        let pool_account_address = await get_pool_account_address(poolId);
+        let initialAssetAmount = BN_0;
+        let virtualAssetAmount = BN_0;
+        const poolSettings = {
+            asset: assetMint,
+            share: shareMint,
+            creator: depositor.publicKey,
+            virtualAssets: virtualAssetAmount,
+            virtualShares,
+            maxSharePrice,
+            maxSharesOut,
+            maxAssetsIn,
+            weightStart,
+            weightEnd,
+            saleStart,
+            saleEnd,
+            vestCliff,
+            vestEnd,
+            sellingAllowed,
+        };
+        try {
+            await program.methods.createPool(
+                poolSettings,
+                poolId,
+                initialShareAmount,
+                initialAssetAmount,
+            ).accounts({
+                depositor: depositor.publicKey,
+                assetMint,
+                shareMint,
+                depositorAccountAsset: depositorAssetTokenAccount,
+                depositorAccountShare: depositorShareTokenAccount,
+                lbpManagerInfo: lbpManagerPda,
+                pool: pool_account_address,
+                poolAccountAsset: poolAssetKp.publicKey,
+                poolAccountShare: poolShareKp.publicKey,
+                tokenProgram: splToken.TOKEN_PROGRAM_ID,
+                rent: SYSVAR_RENT_PUBKEY,
+                systemProgram: anchor.web3.SystemProgram.programId,
+            })
+            .signers([depositor, poolAssetKp, poolShareKp])
+            .rpc()
+            expect.fail("Should have thrown an error")
+        } catch (error) {
+            expect(error.error.errorMessage).to.equal("Invalid Asset Value");
+        }
+    });
+
+    it.only("should revert invalid weight end max", async () => {
+        let poolId = new anchor.BN(7);
+        let pool_account_address = await get_pool_account_address(poolId);
+        let weightEnd = SOL.mul(new anchor.BN(0.99)).add(BN_1);
+        const poolSettings = {
+            asset: assetMint,
+            share: shareMint,
+            creator: depositor.publicKey,
+            virtualAssets,
+            virtualShares,
+            maxSharePrice,
+            maxSharesOut,
+            maxAssetsIn,
+            weightStart,
+            weightEnd,
+            saleStart,
+            saleEnd,
+            vestCliff,
+            vestEnd,
+            sellingAllowed,
+        };
+        try {
+            await program.methods.createPool(
+                poolSettings,
+                poolId,
+                initialShareAmount,
+                initialAssetAmount,
+            ).accounts({
+                depositor: depositor.publicKey,
+                assetMint,
+                shareMint,
+                depositorAccountAsset: depositorAssetTokenAccount,
+                depositorAccountShare: depositorShareTokenAccount,
+                lbpManagerInfo: lbpManagerPda,
+                pool: pool_account_address,
+                poolAccountAsset: poolAssetKp.publicKey,
+                poolAccountShare: poolShareKp.publicKey,
+                tokenProgram: splToken.TOKEN_PROGRAM_ID,
+                rent: SYSVAR_RENT_PUBKEY,
+                systemProgram: anchor.web3.SystemProgram.programId,
+            })
+            .signers([depositor, poolAssetKp, poolShareKp])
+            .rpc()
+            expect.fail("Should have thrown an error")
+        } catch (error) {
+            expect(error.error.errorMessage).to.equal("Invalid Weight Config");
+        }
+    });
+
+    it("should revert invalid weight start max", async () => {
+        let poolId = new anchor.BN(8);
+        let pool_account_address = await get_pool_account_address(poolId);
+        let weightStart = SOL.mul(new anchor.BN(0.99)).add(BN_1);
+        const poolSettings = {
+            asset: assetMint,
+            share: shareMint,
+            creator: depositor.publicKey,
+            virtualAssets,
+            virtualShares,
+            maxSharePrice,
+            maxSharesOut,
+            maxAssetsIn,
+            weightStart,
+            weightEnd,
+            saleStart,
+            saleEnd,
+            vestCliff,
+            vestEnd,
+            sellingAllowed,
+        };
+        try {
+            await program.methods.createPool(
+                poolSettings,
+                poolId,
+                initialShareAmount,
+                initialAssetAmount,
+            ).accounts({
+                depositor: depositor.publicKey,
+                assetMint,
+                shareMint,
+                depositorAccountAsset: depositorAssetTokenAccount,
+                depositorAccountShare: depositorShareTokenAccount,
+                lbpManagerInfo: lbpManagerPda,
+                pool: pool_account_address,
+                poolAccountAsset: poolAssetKp.publicKey,
+                poolAccountShare: poolShareKp.publicKey,
+                tokenProgram: splToken.TOKEN_PROGRAM_ID,
+                rent: SYSVAR_RENT_PUBKEY,
+                systemProgram: anchor.web3.SystemProgram.programId,
+            })
+            .signers([depositor, poolAssetKp, poolShareKp])
+            .rpc()
+            expect.fail("Should have thrown an error")
+        } catch (error) {
+            expect(error.error.errorMessage).to.equal("Invalid Weight Config");
+        }
+    });
+
+    it("should revert invalid weight start min", async () => {
+        let poolId = new anchor.BN(9);
+        let pool_account_address = await get_pool_account_address(poolId);
+        let weightStart = SOL.mul(new anchor.BN(0.01)).sub(BN_1);
+        const poolSettings = {
+            asset: assetMint,
+            share: shareMint,
+            creator: depositor.publicKey,
+            virtualAssets,
+            virtualShares,
+            maxSharePrice,
+            maxSharesOut,
+            maxAssetsIn,
+            weightStart,
+            weightEnd,
+            saleStart,
+            saleEnd,
+            vestCliff,
+            vestEnd,
+            sellingAllowed,
+        };
+        try {
+            await program.methods.createPool(
+                poolSettings,
+                poolId,
+                initialShareAmount,
+                initialAssetAmount,
+            ).accounts({
+                depositor: depositor.publicKey,
+                assetMint,
+                shareMint,
+                depositorAccountAsset: depositorAssetTokenAccount,
+                depositorAccountShare: depositorShareTokenAccount,
+                lbpManagerInfo: lbpManagerPda,
+                pool: pool_account_address,
+                poolAccountAsset: poolAssetKp.publicKey,
+                poolAccountShare: poolShareKp.publicKey,
+                tokenProgram: splToken.TOKEN_PROGRAM_ID,
+                rent: SYSVAR_RENT_PUBKEY,
+                systemProgram: anchor.web3.SystemProgram.programId,
+            })
+            .signers([depositor, poolAssetKp, poolShareKp])
+            .rpc()
+            expect.fail("Should have thrown an error")
+        } catch (error) {
+            expect(error.error.errorMessage).to.equal("Invalid Weight Config");
+        }
+    });
+
+    it("should revert invalid weight end min", async () => {
+        let poolId = new anchor.BN(10);
+        let pool_account_address = await get_pool_account_address(poolId);
+        let weightEnd = SOL.mul(new anchor.BN(0.01)).sub(BN_1);
+        const poolSettings = {
+            asset: assetMint,
+            share: shareMint,
+            creator: depositor.publicKey,
+            virtualAssets,
+            virtualShares,
+            maxSharePrice,
+            maxSharesOut,
+            maxAssetsIn,
+            weightStart,
+            weightEnd,
+            saleStart,
+            saleEnd,
+            vestCliff,
+            vestEnd,
+            sellingAllowed,
+        };
+        try {
+            await program.methods.createPool(
+                poolSettings,
+                poolId,
+                initialShareAmount,
+                initialAssetAmount,
+            ).accounts({
+                depositor: depositor.publicKey,
+                assetMint,
+                shareMint,
+                depositorAccountAsset: depositorAssetTokenAccount,
+                depositorAccountShare: depositorShareTokenAccount,
+                lbpManagerInfo: lbpManagerPda,
+                pool: pool_account_address,
+                poolAccountAsset: poolAssetKp.publicKey,
+                poolAccountShare: poolShareKp.publicKey,
+                tokenProgram: splToken.TOKEN_PROGRAM_ID,
+                rent: SYSVAR_RENT_PUBKEY,
+                systemProgram: anchor.web3.SystemProgram.programId,
+            })
+            .signers([depositor, poolAssetKp, poolShareKp])
+            .rpc()
+            expect.fail("Should have thrown an error")
+        } catch (error) {
+            expect(error.error.errorMessage).to.equal("Invalid Weight Config");
+        }
+    });
+
+    it("should revert invalid start date", async () => {
+        let poolId = new anchor.BN(11);
+        let pool_account_address = await get_pool_account_address(poolId);
+        let saleStart = now.sub(ONE_DAY).add(BN_1);
+        let saleEnd = now.add(TWO_DAYS);
+        const poolSettings = {
+            asset: assetMint,
+            share: shareMint,
+            creator: depositor.publicKey,
+            virtualAssets,
+            virtualShares,
+            maxSharePrice,
+            maxSharesOut,
+            maxAssetsIn,
+            weightStart,
+            weightEnd,
+            saleStart,
+            saleEnd,
+            vestCliff,
+            vestEnd,
+            sellingAllowed,
+        };
+        try {
+            await program.methods.createPool(
+                poolSettings,
+                poolId,
+                initialShareAmount,
+                initialAssetAmount,
+            ).accounts({
+                depositor: depositor.publicKey,
+                assetMint,
+                shareMint,
+                depositorAccountAsset: depositorAssetTokenAccount,
+                depositorAccountShare: depositorShareTokenAccount,
+                lbpManagerInfo: lbpManagerPda,
+                pool: pool_account_address,
+                poolAccountAsset: poolAssetKp.publicKey,
+                poolAccountShare: poolShareKp.publicKey,
+                tokenProgram: splToken.TOKEN_PROGRAM_ID,
+                rent: SYSVAR_RENT_PUBKEY,
+                systemProgram: anchor.web3.SystemProgram.programId,
+            })
+            .signers([depositor, poolAssetKp, poolShareKp])
+            .rpc()
+            expect.fail("Should have thrown an error")
+        } catch (error) {
+            expect(error.error.errorMessage).to.equal("SalePeriodLow");
+        }
+    });
+
+    it("should revert for invalid fee recipient", async () => {
+        // TODO: don't understand this
+    });
+
+    it("should revert max assets deviation low", async () => {
+        // TODO: don't understand this
+    });
+
+    it("should revert max assets deviation high", async () => {
+        // TODO: don't understand this
     });
 });

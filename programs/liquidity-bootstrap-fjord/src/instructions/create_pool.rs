@@ -90,6 +90,15 @@ pub fn handler(ctx: Context<CreatePool>, settings: PoolSettings, id: u64, shares
     }
   }
 
+  if settings.weight_start < (0.01 * 1_000_000_000.0) as u64 || settings.weight_start > (0.99 * 1_000_000_000.0) as u64
+    || settings.weight_end < (0.01 * 1_000_000_000.0) as u64 || settings.weight_end > (0.99 * 1_000_000_000.0) as u64 {
+    return err!(ErrorCode::InvalidWeightConfig);
+  }
+
+  if assets == 0 && settings.virtual_assets == 0 {
+    return err!(ErrorCode::InvalidAssetValue);
+  }
+
   pool.settings = settings;
   pool.id = id;
   pool.initialized = true;
@@ -118,6 +127,8 @@ pub fn handler(ctx: Context<CreatePool>, settings: PoolSettings, id: u64, shares
       ),
       shares,
   )?;
+
+  // TODO: emit log here: Pool created
 
   Ok(())
 }

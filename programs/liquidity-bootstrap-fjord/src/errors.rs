@@ -22,4 +22,10 @@ pub enum ErrorCode {
 
   #[msg("Invalid Vest End")]
   InvalidVestEnd,
+
+  #[msg("Invalid Weight Config")]
+  InvalidWeightConfig,
+
+  #[msg("Invalid Asset Value")]
+  InvalidAssetValue,
 }
