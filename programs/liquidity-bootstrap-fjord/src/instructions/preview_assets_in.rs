@@ -1,13 +1,8 @@
 use anchor_lang::prelude::*;
 use crate::state::*;
+use crate::errors::ErrorCode;
 use anchor_spl::token::{TokenAccount};
 use crate::utils::*;
-
-#[error_code]
-pub enum ErrorCode {
-  #[msg("Math Error")]
-  MathError,
-}
 
 #[derive(Accounts)]
 pub struct PreviewAssetsIn<'info> {

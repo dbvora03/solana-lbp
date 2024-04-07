@@ -2,25 +2,9 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, TokenAccount, Token, Transfer};
 use crate::state::*;
 use crate::utils::*;
+use crate::errors::ErrorCode;
 
 use anchor_lang::error_code;
-
-#[error_code]
-pub enum ErrorCode {
-  #[msg("The pool has already been initialized.")]
-  AlreadyInitialized,
-  #[msg("Slippage Exceeded")]
-  SlippageExceeded,
-
-  #[msg("Max Assets In Exceeded")]
-  MaxAssetsInExceeded,
-
-  #[msg("Max Shares Exceeded")]
-  MaxSharesExceeded,
-
-  #[msg("Math Error")]
-  MathError,
-}
 
 
 #[event]
