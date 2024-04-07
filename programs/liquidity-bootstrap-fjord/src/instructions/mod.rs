@@ -6,6 +6,8 @@ pub mod transfer_ownership;
 pub mod create_pool;
 pub mod swap_exact_assets_for_shares;
 pub mod swap_assets_for_exact_shares;
+pub mod swap_exact_shares_for_assets;
+pub mod swap_shares_for_exact_assets;
 pub mod preview_assets_in;
 pub mod create_pool_dupe;
 
@@ -18,3 +20,5 @@ pub use swap_exact_assets_for_shares::*;
 pub use swap_assets_for_exact_shares::*;
 pub use preview_assets_in::*;
 pub use create_pool_dupe::*;
+pub use swap_shares_for_exact_assets::*;
+pub use swap_exact_shares_for_assets::*;

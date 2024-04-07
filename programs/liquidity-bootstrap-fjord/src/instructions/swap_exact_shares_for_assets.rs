@@ -1,12 +1,41 @@
+use anchor_spl::token::{self, TokenAccount, Transfer, Token};
+use anchor_lang::prelude::*;
+use crate::errors::ErrorCode;
+use crate::utils::*;
+use crate::state::*;
 
 #[derive(Accounts)]
 pub struct SwapExactSharesForAssets<'info> {
   #[account(mut)]
-  pub authority: Signer<'info>,
+  pub depositor: Signer<'info>,
 
   #[account(mut)]
   pub pool: Account<'info, Pool>,
+
+  #[account(mut)]
+  pub pool_assets_account: Account<'info, TokenAccount>,
+
+  #[account(mut)]
+  pub pool_shares_account: Account<'info, TokenAccount>,
+
+  #[account(mut)]
+  pub depositor_assets_account: Account<'info, TokenAccount>,
+
+  #[account(
+    init,
+    seeds = [
+      b"user_stats".as_ref(),
+      &pool.key().as_ref(),
+      &depositor.key().as_ref(),
+    ],
+    payer = depositor,
+    space = 8 + 32 + 32 + 8 + 8 + 1,
+    bump
+  )]
+  pub buyer_stats: Box<Account<'info, UserStats>>,
+
   pub lbp_manager_info: Account<'info, LBPManagerInfo>,
+
   pub token_program: Program<'info, Token>,
   pub rent: Sysvar<'info, Rent>,
   pub system_program: Program<'info, System>,
@@ -24,11 +53,12 @@ pub fn handler(
 
   let assets: u64 = ctx.accounts.pool_assets_account.amount;
   let shares: u64 = ctx.accounts.pool_shares_account.amount;
+  let buyer_stats = &mut ctx.accounts.buyer_stats;
 
   let swap_fees = shares_in * manager.swap_fee;
   pool.total_swap_fees_share += swap_fees;
 
-  let assets_out_result = pool.preview_assets_out(pool, shares_in - swap_fees);
+  let assets_out_result = preview_assets_out(pool, shares_in - swap_fees, assets, shares);
 
   if assets_out_result.is_err() {
     return err!(ErrorCode::MathError);
@@ -44,7 +74,7 @@ pub fn handler(
     return err!(ErrorCode::MaxAssetsInExceeded);
   }
 
-  total_purchased_before = pool.total_purchased;
+  let total_purchased_before = pool.total_purchased;
 
   if (total_purchased_before >= pool.settings.max_shares_out || total_purchased_before > shares) {
     return err!(ErrorCode::MaxSharesExceeded);
@@ -58,7 +88,7 @@ pub fn handler(
         ctx.accounts.token_program.to_account_info(),
         Transfer {
             from: ctx.accounts.pool_assets_account.to_account_info(),
-            to: ctx.accounts.depositor_asset_account.to_account_info(),
+            to: ctx.accounts.depositor_assets_account.to_account_info(),
             authority: ctx.accounts.depositor.to_account_info(),
         },
     ),
@@ -66,5 +96,5 @@ pub fn handler(
   )?;
 
 
-  Ok(())
+  Ok(assets_out)
 }
