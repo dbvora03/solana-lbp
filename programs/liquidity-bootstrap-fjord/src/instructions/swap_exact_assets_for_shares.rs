@@ -125,6 +125,7 @@ pub fn handler(
 
   if recipient != Pubkey::default() && lbp_manager_info.referrer_fee > 0 {
     let assets_referred: u64 = assets_in * lbp_manager_info.referrer_fee;
+    pool.total_referred += assets_referred;
     referrer_stats.referred_amount += assets_referred;
   }
 

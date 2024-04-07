@@ -10,6 +10,7 @@ pub mod swap_exact_shares_for_assets;
 pub mod swap_shares_for_exact_assets;
 pub mod preview_assets_in;
 pub mod create_pool_dupe;
+pub mod close;
 
 pub use initialize::*;
 pub use set_swap_fee::*;
@@ -22,3 +23,4 @@ pub use preview_assets_in::*;
 pub use create_pool_dupe::*;
 pub use swap_shares_for_exact_assets::*;
 pub use swap_exact_shares_for_assets::*;
+pub use close::*;

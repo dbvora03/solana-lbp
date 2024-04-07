@@ -52,5 +52,9 @@ pub mod liquidity_bootstrap_fjord {
     pub fn preview_assets_in(ctx: Context<PreviewAssetsIn>, shares_out: u64) -> Result<u64> {
         instructions::preview_assets_in::handler(ctx, shares_out)
     }
+
+    pub fn close(ctx: Context<Close>) -> Result<()> {
+        instructions::close::handler(ctx)
+    }
 }
 

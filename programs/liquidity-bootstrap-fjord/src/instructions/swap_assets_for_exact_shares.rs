@@ -99,7 +99,7 @@ pub fn handler (
   token::transfer(
     CpiContext::new(
         ctx.accounts.token_program.to_account_info(),
-        Transfer {
+        Transfer {  
             from: ctx.accounts.depositor_asset_account.to_account_info(),
             to: ctx.accounts.pool_assets_account.to_account_info(),
             authority: ctx.accounts.depositor.to_account_info(),
@@ -119,8 +119,11 @@ pub fn handler (
 
   if recipient != Pubkey::default() && manager.referrer_fee > 0 {
     let assets_referred: u64 = assets_in * manager.referrer_fee;
+    pool.total_referred += assets_referred;
     referrer_stats.referred_amount += assets_referred;
   }
+
+
 
 
   // TODO: Emit an event here
