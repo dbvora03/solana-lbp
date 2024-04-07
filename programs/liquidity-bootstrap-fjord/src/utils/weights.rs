@@ -112,7 +112,7 @@ pub fn get_amount_in(amount_out: f64, reserve_in: f64, reserve_out: f64, weight_
   }
   // TODO: check if this can be a problem, u32 required for rust pow
   let div_result = weight_in / weight_out;
-  msg!("reserve_in: {} reserve_out: {} div_result: {}", reserve_in, reserve_out, div_result);
+  msg!("reserve_in: {} reserve_out: {} div_result: {}, amount out: {}", reserve_in, reserve_out, div_result, amount_out);
   msg!("((reserve_out / (reserve_out - amount_out)).powf(div_result) - 1.0): {}", ((reserve_out / (reserve_out - amount_out)).powf(div_result) - 1.0));
   let res: f64 = reserve_in * ((reserve_out / (reserve_out - amount_out)).powf(div_result) - 1.0);
   Ok(res as u64)

@@ -268,7 +268,7 @@ describe.only("weight", () => {
   });
 
   it("test normal weight", async () => {
-    const defaultSharesOut = new anchor.BN(10);
+    const defaultSharesOut = new anchor.BN(10).mul(SOL);
     const expectedAssetsIn = 10;
     // in this example the assetWeight and shareWeight would be equal
     let assetsIn = await program.methods.previewAssetsIn(
@@ -281,6 +281,6 @@ describe.only("weight", () => {
         lbpManagerInfo: lbpManagerPda,
     })
     .view();
-    console.log(assetsIn.toString())
+    assert.ok(assetsIn.div(SOL).eq(new anchor.BN(expectedAssetsIn)), "assetsIn should be 10");
   });
 });
