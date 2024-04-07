@@ -4,7 +4,7 @@ use anchor_lang::error_code;
 pub enum ErrorCode {
   #[msg("The pool has already been initialized.")]
   AlreadyInitialized,
-  
+
   #[msg("Math Error")]
   MathError,
 
@@ -34,4 +34,11 @@ pub enum ErrorCode {
 
   #[msg("Sale Period Low")]
   SalePeriodLow,
+
+  #[msg("Closing disallowed")]
+  ClosingDisallowed,
+
+  #[msg("Clock error")]
+  ClockError,
+
 }

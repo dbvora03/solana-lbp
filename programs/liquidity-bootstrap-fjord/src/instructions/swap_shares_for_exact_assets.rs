@@ -34,6 +34,7 @@ pub struct SwapSharesForExactAssets<'info> {
   )]
   pub buyer_stats: Box<Account<'info, UserStats>>,
 
+  #[account(mut)]
   pub lbp_manager_info: Account<'info, LBPManagerInfo>,
 
   pub token_program: Program<'info, Token>,

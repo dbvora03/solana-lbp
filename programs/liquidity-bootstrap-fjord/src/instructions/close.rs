@@ -3,17 +3,145 @@ use crate::state::*;
 use crate::errors::ErrorCode;
 use anchor_spl::token::{self, TokenAccount, Transfer, Mint, Token};
 
-
 #[derive(Accounts)]
-pub struct ClosePool<'info> {
+pub struct Close<'info> {
 
+  #[account(mut)]
+  pub signer: Signer<'info>,
+
+  #[account(mut)]
+  pub pool_assets_account: Account<'info, TokenAccount>,
+
+  #[account(mut)]
+  pub pool_shares_account: Account<'info, TokenAccount>,
+
+  #[account(
+    mut,
+    constraint = fee_asset_rec_account.mint == pool.settings.asset,
+    constraint = fee_asset_rec_account.owner == lbp_manager_info.fee_recipient,
+  )]
+  pub fee_asset_rec_account: Account<'info, TokenAccount>,
+
+  #[account(
+    mut,
+    constraint = fee_share_rec_account.mint == pool.settings.share,
+    constraint = fee_share_rec_account.owner == lbp_manager_info.fee_recipient,
+  )]
+  pub fee_share_rec_account: Account<'info, TokenAccount>,
+
+  #[account(
+    mut,
+    constraint = manager_share_token_account.mint == pool.settings.share,
+    constraint = manager_share_token_account.owner == lbp_manager_info.authority,
+  )]
+  pub manager_share_token_account: Account<'info, TokenAccount>,
+
+  #[account(
+    mut,
+    constraint = manager_asset_token_account.mint == pool.settings.asset,
+    constraint = manager_asset_token_account.owner == lbp_manager_info.authority,
+  )]
+  pub manager_asset_token_account: Account<'info, TokenAccount>,
+
+  #[account(mut)]
+  pub lbp_manager_info: Account<'info, LBPManagerInfo>,
+
+  #[account(mut)]
+  pub pool: Account<'info, Pool>,
+
+
+  pub token_program: Program<'info, Token>,
+  pub system_program: Program<'info, System>,
 }
 
-
-pub fn handler(ctx: Context<ClosePool>) -> Result<()> {
+pub fn handler(ctx: Context<Close>) -> Result<()> {
   let pool = &mut ctx.accounts.pool;
+  let lbp_manager_info = &mut ctx.accounts.lbp_manager_info;
+  let assets: u64 = ctx.accounts.pool_assets_account.amount;
+  let shares: u64 = ctx.accounts.pool_shares_account.amount;
 
-  
+  if pool.closed {
+    return err!(ErrorCode::ClosingDisallowed);
+  }
+
+  // TODO: Revert if the pool is already closed
+
+  let unix_timestamp = match Clock::get() {
+    Ok(clock) => clock.unix_timestamp,
+    Err(_) => return err!(ErrorCode::ClockError),
+  };
+
+  if (unix_timestamp as i128) < (pool.settings.sale_end as i128) {
+    return err!(ErrorCode::ClosingDisallowed);
+  }
+
+  let pool_assets = assets - pool.total_swap_fees_asset;
+  let platform_fees = pool_assets * lbp_manager_info.platform_fee;
+
+  let total_assets_minus_fees = pool_assets - platform_fees - pool.total_referred;
+
+  if pool_assets != 0 {
+
+    token::transfer(
+      CpiContext::new(
+          ctx.accounts.token_program.to_account_info(),
+          Transfer {  
+              from: ctx.accounts.pool_assets_account.to_account_info(),
+              to: ctx.accounts.fee_asset_rec_account.to_account_info(),
+              authority: ctx.accounts.signer.to_account_info(),
+          },
+      ),
+      (platform_fees + pool.total_swap_fees_asset),
+    )?;
+
+    token::transfer(
+      CpiContext::new(
+          ctx.accounts.token_program.to_account_info(),
+          Transfer {  
+              from: ctx.accounts.pool_shares_account.to_account_info(),
+              to: ctx.accounts.fee_asset_rec_account.to_account_info(),
+              authority: ctx.accounts.signer.to_account_info(),
+          },
+      ),
+      pool.total_swap_fees_share
+    )?;
+
+    // TODO: Do the distribute fee function for treasury
+
+
+    token::transfer(
+      CpiContext::new(
+          ctx.accounts.token_program.to_account_info(),
+          Transfer {  
+              from: ctx.accounts.pool_assets_account.to_account_info(),
+              to: ctx.accounts.manager_asset_token_account.to_account_info(),
+              authority: ctx.accounts.signer.to_account_info(),
+          },
+      ),
+      total_assets_minus_fees,
+    )?;
+  }
+
+  let unsold_shares = shares - pool.total_purchased;
+
+  if shares != 0 {
+    token::transfer(
+      CpiContext::new(
+          ctx.accounts.token_program.to_account_info(),
+          Transfer {  
+              from: ctx.accounts.pool_shares_account.to_account_info(),
+              to: ctx.accounts.manager_share_token_account.to_account_info(),
+              authority: ctx.accounts.signer.to_account_info(),
+          },
+      ),
+      unsold_shares,
+    )?;
+  }
+
+  pool.closed = true;
+
+  // TODO: Emit an event here
+
 
   Ok(())
 }

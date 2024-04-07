@@ -43,7 +43,7 @@ pub struct CreatePool<'info> {
         &id.to_le_bytes().as_ref(),
       ],
       payer = depositor,
-      space = 8 + 32 + 32 + 32 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 1 + (8 + 1 + 8 + 8 + 8 + 1),
+      space = 8 + 32 + 32 + 32 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 1 + (8 + 1 + 8 + 8 + 8 + 1),
       bump,
     )]
     pub pool: Box<Account<'info, Pool>>,
@@ -107,30 +107,31 @@ pub fn handler(ctx: Context<CreatePool>, settings: PoolSettings, id: u64, shares
   pool.settings = settings;
   pool.id = id;
   pool.initialized = true;
+  pool.closed = false;
   pool.bump = ctx.bumps.pool;
 
   token::transfer(
-      CpiContext::new(
-          ctx.accounts.token_program.to_account_info(),
-          Transfer {
-              from: ctx.accounts.depositor_account_asset.to_account_info(),
-              to: ctx.accounts.pool_account_asset.to_account_info(),
-              authority: ctx.accounts.depositor.to_account_info(),
-          },
-      ),
-      assets,
+    CpiContext::new(
+        ctx.accounts.token_program.to_account_info(),
+        Transfer {
+            from: ctx.accounts.depositor_account_asset.to_account_info(),
+            to: ctx.accounts.pool_account_asset.to_account_info(),
+            authority: ctx.accounts.depositor.to_account_info(),
+        },
+    ),
+    assets,
   )?;
 
   token::transfer(
-      CpiContext::new(
-          ctx.accounts.token_program.to_account_info(),
-          Transfer {
-              from: ctx.accounts.depositor_account_share.to_account_info(),
-              to: ctx.accounts.pool_account_share.to_account_info(),
-              authority: ctx.accounts.depositor.to_account_info(),
-          },
-      ),
-      shares,
+    CpiContext::new(
+        ctx.accounts.token_program.to_account_info(),
+        Transfer {
+            from: ctx.accounts.depositor_account_share.to_account_info(),
+            to: ctx.accounts.pool_account_share.to_account_info(),
+            authority: ctx.accounts.depositor.to_account_info(),
+        },
+    ),
+    shares,
   )?;
 
   // TODO: emit log here: Pool created
