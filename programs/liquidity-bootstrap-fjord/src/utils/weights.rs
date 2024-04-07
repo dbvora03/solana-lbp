@@ -106,24 +106,25 @@ pub fn get_amount_in(amount_out: u64, reserve_in: u64, reserve_out: u64, weight_
   // test
   let res = 0;
 
-  let MAX_PERCENTAGE_OUT: u64 = (0.3 * SOL) as u64;
+  let MAX_PERCENTAGE_OUT = 0.3;
   msg!("Message logged: {} {} {}", amount_out, reserve_out, MAX_PERCENTAGE_OUT);
-  if amount_out > reserve_out * MAX_PERCENTAGE_OUT {
+  if amount_out > (reserve_out as f64  * MAX_PERCENTAGE_OUT) as u64 {
     return err!(ErrorCode::AmountOutTooLarge);
   }
-  // // TODO: check if this can be a problem, u32 required for rust pow
-  // let div_result = weight_in / weight_out;
-  // if div_result > u32::MAX as u64 {
-  //   return err!(ErrorCode::NotSafeForPow);
-  // }
-  // let div_result_u32 = div_result as u32;
-  // let res: u64 = reserve_in * ((reserve_out / (reserve_out - amount_out)).pow(div_result_u32) - (SOL as u64));
+  // TODO: check if this can be a problem, u32 required for rust pow
+  let div_result = weight_in / weight_out;
+  if div_result > u32::MAX as u64 {
+    return err!(ErrorCode::NotSafeForPow);
+  }
+  let div_result_u32 = div_result as u32;
+  msg!("message 2: {} {} {} {} {}", reserve_in, reserve_out, amount_out, div_result_u32, 1 as u64);
+  let res: u64 = reserve_in * ((reserve_out / (reserve_out - amount_out)).pow(div_result_u32) - (1 as u64));
   Ok(res)
 }
 
 pub fn get_amount_out(amount_in: u64, reserve_in: u64, reserve_out: u64, weight_in: u64, weight_out: u64) -> Result<u64> {
-  let MAX_PERCENTAGE_IN: u64 = (0.3 * SOL) as u64;
-  if amount_in > reserve_in * MAX_PERCENTAGE_IN {
+  let MAX_PERCENTAGE_IN = 0.3;
+  if amount_in > (reserve_in as f64 * MAX_PERCENTAGE_IN) as u64 {
     return err!(ErrorCode::AmountInTooLarge);
   }
   let div_result = weight_in / weight_out;
@@ -147,15 +148,15 @@ pub fn preview_assets_in(pool: &Pool, shares_out: u64, assets:u64, shares: u64) 
   let (asset_reserve_scaled, share_reserve_scaled) = scaled_reserves(pool, asset_reserve, share_reserve);
   let shares_out_scaled = scale_token_before(pool.settings.share, shares_out);
   let assets_in_result = get_amount_in(shares_out_scaled, asset_reserve_scaled, share_reserve_scaled, asset_weight, share_weight);
-  // if assets_in_result.is_err() {
-  //   return Err(assets_in_result.unwrap_err());
-  // }
-  // let mut assets_in = assets_in_result.unwrap();
-  // let max_share_price = pool.settings.max_share_price;
-  // if assets_in / shares_out_scaled > max_share_price {
-  //   assets_in = shares_out_scaled / max_share_price;
-  // }
-  // assets_in = scale_token_after(pool.settings.asset, assets_in);
+  if assets_in_result.is_err() {
+    return Err(assets_in_result.unwrap_err());
+  }
+  let mut assets_in = assets_in_result.unwrap();
+  let max_share_price = pool.settings.max_share_price;
+  if assets_in / shares_out_scaled > max_share_price {
+    assets_in = shares_out_scaled / max_share_price;
+  }
+  assets_in = scale_token_after(pool.settings.asset, assets_in);
   Ok(assets_in)
 }
 

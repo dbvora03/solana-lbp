@@ -6,13 +6,10 @@ use crate::utils::*;
 
 #[derive(Accounts)]
 pub struct PreviewAssetsIn<'info> {
-  #[account(mut)]
   pub pool: Account<'info, Pool>,
 
-  #[account(mut)]
   pub pool_assets_account: Account<'info, TokenAccount>,
 
-  #[account(mut)]
   pub pool_shares_account: Account<'info, TokenAccount>,
 
   pub lbp_manager_info: Account<'info, LBPManagerInfo>,
@@ -26,7 +23,7 @@ pub fn handler(ctx: Context<PreviewAssetsIn>, shares_out: u64) -> Result<u64> {
   let assets: u64 = ctx.accounts.pool_assets_account.amount;
   let shares: u64 = ctx.accounts.pool_shares_account.amount;
 
-  let mut assets_in_result = preview_assets_in(pool, shares_out, shares, assets);
+  let assets_in_result = preview_assets_in(pool, shares_out, shares, assets);
   if assets_in_result.is_err() {
     return err!(ErrorCode::MathError);
   }

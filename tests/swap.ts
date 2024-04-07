@@ -62,7 +62,7 @@ describe.only("swap", () => {
 };
 
   const create_pool = async () => {
-    const now = new anchor.BN(Math.floor(Date.now() / 1000));
+    let now = new anchor.BN(await provider.connection.getBlockTime(await provider.connection.getSlot()))
     const saleStart = now.add(ONE_DAY);
     const saleEnd = now.add(TWO_DAYS);
     const vestCliff = now.add(ONE_DAY).add(TWO_DAYS);
@@ -72,7 +72,7 @@ describe.only("swap", () => {
     const maxSharePrice = new anchor.BN(SOL.mul(new anchor.BN(10_000)));
     // const maxSharesOut = BN_2.pow(BN_256).sub(new anchor.BN(1)); // type(uint256).max
     const maxSharesOut = new anchor.BN(SOL.mul(new anchor.BN(1000_000_000)));
-    const maxAssetsIn = new anchor.BN(0);
+    const maxAssetsIn = new anchor.BN(SOL.mul(new anchor.BN(1000_000_000)));
     const weightStart = SOL.div(new anchor.BN(2));
     const weightEnd = SOL.div(new anchor.BN(2));
     const sellingAllowed = true;
@@ -265,27 +265,27 @@ describe.only("swap", () => {
       poolSharesAccount: poolShareKp.publicKey,
       lbpManagerInfo: lbpManagerPda,
     })
-    .rpc();
+    .view();
     console.log(maxAssetsIn);
-    // await program.methods.swapAssetsForExactShares(
-    //   bob.publicKey,
-    //   sharesOut,
-    //   maxAssetsIn,
-    //   alice.publicKey
-    // ).accounts({
-    //   depositor: alice.publicKey,
-    //   pool: poolAccountAddress,
-    //   poolAssetsAccount: poolAssetKp.publicKey,
-    //   poolSharesAccount: poolShareKp.publicKey,
-    //   depositorAssetAccount: depositorAssetTokenAccount,
-    //   buyerStats: buyerStatsPda,
-    //   referrerStats: referrerStatsPda,
-    //   lbpManagerInfo: lbpManagerPda,
-    //   tokenProgram: splToken.TOKEN_PROGRAM_ID,
-    //   rent: SYSVAR_RENT_PUBKEY,
-    //   systemProgram: anchor.web3.SystemProgram.programId,
-    // })
-    // .signers([alice])
-    // .rpc()
+    await program.methods.swapAssetsForExactShares(
+      bob.publicKey,
+      sharesOut,
+      maxAssetsIn,
+      alice.publicKey
+    ).accounts({
+      depositor: alice.publicKey,
+      pool: poolAccountAddress,
+      poolAssetsAccount: poolAssetKp.publicKey,
+      poolSharesAccount: poolShareKp.publicKey,
+      depositorAssetAccount: depositorAssetTokenAccount,
+      buyerStats: buyerStatsPda,
+      referrerStats: referrerStatsPda,
+      lbpManagerInfo: lbpManagerPda,
+      tokenProgram: splToken.TOKEN_PROGRAM_ID,
+      rent: SYSVAR_RENT_PUBKEY,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    })
+    .signers([alice])
+    .rpc()
   });
 });
