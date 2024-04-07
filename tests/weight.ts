@@ -13,11 +13,7 @@ describe.only("weight", () => {
   const ONE_DAY = new anchor.BN(86400);
   const TWO_DAYS = new anchor.BN(172800);
   const TEN_DAYS = new anchor.BN(864000);
-  const BN_2 = new anchor.BN(2);
-  const BN_256 = new anchor.BN(256);
   const BN_0 = new anchor.BN(0);
-  const BN_1 = new anchor.BN(1);
-  const ZERO_ADDRESS = new anchor.web3.PublicKey("11111111111111111111111111111111");
 
   const managerId = new anchor.BN(3);
 
@@ -31,8 +27,6 @@ describe.only("weight", () => {
   const creator = anchor.web3.Keypair.generate();
   const alice = anchor.web3.Keypair.generate();
   const bob = anchor.web3.Keypair.generate();
-  const sharesOut = BN_0;
-  const maxAssetsIn = BN_0;
 
   let lbpManagerPda;
   let assetMint;
@@ -40,24 +34,20 @@ describe.only("weight", () => {
   let depositorAssetTokenAccount;
   let poolAssetKp;
   let poolShareKp;
-
+  let creatorAssetTokenAccount;
+  let creatorShareTokenAccount;
   let buyerStatsPda;
   let referrerStatsPda;
 
-  let creatorAssetTokenAccount;
-  let creatorShareTokenAccount;
-
   const totalSwapFeesAsset = new anchor.BN(0);
   const totalSwapFeesShare = new anchor.BN(0);
-  let initialShareAmount = SOL.mul(new anchor.BN(1000));
-  let initialAssetAmount = SOL.mul(new anchor.BN(1000));
   const totalPurchased = new anchor.BN(0);
   const totalReferred = new anchor.BN(0);
 
   const fund = async (pubkey) => {
     const airdropSignature = await provider.connection.requestAirdrop(
       pubkey,
-      2000 * 1_000_000_000
+      1000 * SOL.toNumber()
     );
 
     const latestBlockHash = await provider.connection.getLatestBlockhash();
@@ -107,7 +97,9 @@ describe.only("weight", () => {
 
   const create_pool = async (
     poolSettings, 
-    poolId
+    poolId,
+    initialShareAmount = SOL.mul(new anchor.BN(1000)),
+    initialAssetAmount = SOL.mul(new anchor.BN(1000)),
   ) => {
     const pool_account_address = await get_pool_account_address(poolId);
     await program.methods.createPool(
@@ -247,7 +239,7 @@ describe.only("weight", () => {
       assetMint,
       creatorAssetTokenAccount,
       (provider.wallet as NodeWallet).payer.publicKey,
-      1000_000_000_000
+      20_000_000 * SOL.toNumber()
     );
     await splToken.mintTo(
       provider.connection,
@@ -255,7 +247,7 @@ describe.only("weight", () => {
       shareMint,
       creatorShareTokenAccount,
       (provider.wallet as NodeWallet).payer.publicKey,
-      1000_000_000_000
+      20_000_000 * SOL.toNumber()
     );
     await splToken.mintTo(
       provider.connection,
@@ -263,7 +255,7 @@ describe.only("weight", () => {
       assetMint,
       depositorAssetTokenAccount,
       (provider.wallet as NodeWallet).payer.publicKey,
-      1000_000_000_000
+      20_000_000 * SOL.toNumber()
     );
     
     poolAssetKp = anchor.web3.Keypair.generate();
@@ -318,17 +310,19 @@ describe.only("weight", () => {
     assert.ok(assetsIn.div(SOL).eq(new anchor.BN(expectedAssetsIn)), "assetsIn should be 1");
   });
 
-  it.only("test min weight", async () => {
+  it("test min weight", async () => {
     const poolId = new anchor.BN(103);
     const poolAccountAddress = await get_pool_account_address(poolId);
     const poolSettings = await getDefaultPoolSettings();
-    poolSettings.weightStart = SOL.div(new anchor.BN(100)).mul(new anchor.BN(99)); // 0.99 sol
-    poolSettings.weightEnd = SOL.div(new anchor.BN(100)).mul(new anchor.BN(99)); // 0.99 sol
-    await create_pool(poolSettings, poolId);
+    const initialShareAmount = SOL.mul(new anchor.BN(10_000_000));
+    const initialAssetAmount = SOL.mul(new anchor.BN(10_000_000));
+    poolSettings.weightStart = SOL.div(new anchor.BN(100)); // 1%
+    poolSettings.weightEnd = SOL.div(new anchor.BN(100)); // 1%
+    await create_pool(poolSettings, poolId, initialShareAmount, initialAssetAmount);
     await setUp(poolAccountAddress);
 
-    const defaultSharesOut = new anchor.BN(100).mul(SOL);
-    const expectedAssetsIn = 1;
+    const defaultSharesOut = new anchor.BN(10).mul(SOL);
+    const expectedAssetsIn = 990;
     // in this example the assetWeight and shareWeight would be equal
     let assetsIn = await program.methods.previewAssetsIn(
         defaultSharesOut
@@ -340,18 +334,6 @@ describe.only("weight", () => {
         lbpManagerInfo: lbpManagerPda,
     })
     .view();
-    assert.ok(assetsIn.div(SOL).eq(new anchor.BN(expectedAssetsIn)), "assetsIn should be 1");
+    assert.ok(assetsIn.div(SOL).eq(new anchor.BN(expectedAssetsIn)), "assetsIn should be 990");
   });
-
-  // it("test start weight small open", async () => {
-  //   const poolId = new anchor.BN(102);
-  //   const poolAccountAddress = await get_pool_account_address(poolId);
-  //   const poolSettings = await getDefaultPoolSettings();
-  //   poolSettings.weightStart = SOL.div(new anchor.BN(10)); // 0.1 sol
-  //   poolSettings.weightEnd = SOL.div(new anchor.BN(10)).mul(new anchor.BN(9)); // 0.9 sol
-  //   await create_pool(poolSettings, poolId);
-  //   await setUp(poolAccountAddress);
-
-
-  // })
 });
