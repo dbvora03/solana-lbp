@@ -111,8 +111,9 @@ pub fn get_amount_in(amount_out: f64, reserve_in: f64, reserve_out: f64, weight_
     return err!(ErrorCode::AmountOutTooLarge);
   }
   // TODO: check if this can be a problem, u32 required for rust pow
-  let div_result = weight_in / weight_out;
+  let div_result = weight_out / weight_in;
   msg!("reserve_in: {} reserve_out: {} div_result: {}, amount out: {}", reserve_in, reserve_out, div_result, amount_out);
+  msg!("(reserve_out / (reserve_out - amount_out) {}", (reserve_out / (reserve_out - amount_out)));
   msg!("((reserve_out / (reserve_out - amount_out)).powf(div_result) - 1.0): {}", ((reserve_out / (reserve_out - amount_out)).powf(div_result) - 1.0));
   let res: f64 = reserve_in * ((reserve_out / (reserve_out - amount_out)).powf(div_result) - 1.0);
   Ok(res as u64)
@@ -157,6 +158,8 @@ pub fn preview_assets_in(pool: &Pool, shares_out: u64, assets:u64, shares: u64) 
   let mut assets_in = assets_in_result.unwrap();
   msg!("assets_in: {}", assets_in);
 
+  msg!("pool.settings.max_share_price: {}", pool.settings.max_share_price);
+  msg!("assets_in / shares_out_scaled: {}", assets_in / shares_out_scaled);
   let max_share_price = pool.settings.max_share_price;
   if assets_in / shares_out_scaled > max_share_price {
     assets_in = shares_out_scaled / max_share_price;

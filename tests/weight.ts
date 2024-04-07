@@ -49,13 +49,10 @@ describe.only("weight", () => {
 
   const totalSwapFeesAsset = new anchor.BN(0);
   const totalSwapFeesShare = new anchor.BN(0);
-  const initialShareAmount = SOL.mul(new anchor.BN(1000));
-  const initialAssetAmount = SOL.mul(new anchor.BN(1000));
+  let initialShareAmount = SOL.mul(new anchor.BN(1000));
+  let initialAssetAmount = SOL.mul(new anchor.BN(1000));
   const totalPurchased = new anchor.BN(0);
   const totalReferred = new anchor.BN(0);
-
-
-
 
   const fund = async (pubkey) => {
     const airdropSignature = await provider.connection.requestAirdrop(
@@ -70,7 +67,7 @@ describe.only("weight", () => {
       lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
       signature: airdropSignature,
     });
-};
+  };
 
   const getDefaultPoolSettings = async () => {
     let now = new anchor.BN(await provider.connection.getBlockTime(await provider.connection.getSlot()))
@@ -108,7 +105,10 @@ describe.only("weight", () => {
     return poolSettings;
   }
 
-  const create_pool = async (poolSettings, poolId) => {
+  const create_pool = async (
+    poolSettings, 
+    poolId
+  ) => {
     const pool_account_address = await get_pool_account_address(poolId);
     await program.methods.createPool(
         poolSettings,
@@ -293,13 +293,65 @@ describe.only("weight", () => {
     assert.ok(assetsIn.div(SOL).eq(new anchor.BN(expectedAssetsIn)), "assetsIn should be 10");
   });
 
-  it("test start weight small open", async () => {
+  it("test max weight", async () => {
     const poolId = new anchor.BN(102);
     const poolAccountAddress = await get_pool_account_address(poolId);
     const poolSettings = await getDefaultPoolSettings();
-    poolSettings.weightStart = SOL.div(new anchor.BN(10)); // 0.1 sol
-    poolSettings.weightEnd = SOL.mul(new anchor.BN(0.9)); // 0.9 sol
+    poolSettings.weightStart = SOL.div(new anchor.BN(100)).mul(new anchor.BN(99)); // 0.99 sol
+    poolSettings.weightEnd = SOL.div(new anchor.BN(100)).mul(new anchor.BN(99)); // 0.99 sol
     await create_pool(poolSettings, poolId);
-    // await setUp(poolAccountAddress);
-  })
+    await setUp(poolAccountAddress);
+
+    const defaultSharesOut = new anchor.BN(100).mul(SOL);
+    const expectedAssetsIn = 1;
+    // in this example the assetWeight and shareWeight would be equal
+    let assetsIn = await program.methods.previewAssetsIn(
+        defaultSharesOut
+    )
+    .accounts({
+        pool: poolAccountAddress,
+        poolAssetsAccount: poolAssetKp.publicKey,
+        poolSharesAccount: poolShareKp.publicKey,
+        lbpManagerInfo: lbpManagerPda,
+    })
+    .view();
+    assert.ok(assetsIn.div(SOL).eq(new anchor.BN(expectedAssetsIn)), "assetsIn should be 1");
+  });
+
+  it.only("test min weight", async () => {
+    const poolId = new anchor.BN(103);
+    const poolAccountAddress = await get_pool_account_address(poolId);
+    const poolSettings = await getDefaultPoolSettings();
+    poolSettings.weightStart = SOL.div(new anchor.BN(100)).mul(new anchor.BN(99)); // 0.99 sol
+    poolSettings.weightEnd = SOL.div(new anchor.BN(100)).mul(new anchor.BN(99)); // 0.99 sol
+    await create_pool(poolSettings, poolId);
+    await setUp(poolAccountAddress);
+
+    const defaultSharesOut = new anchor.BN(100).mul(SOL);
+    const expectedAssetsIn = 1;
+    // in this example the assetWeight and shareWeight would be equal
+    let assetsIn = await program.methods.previewAssetsIn(
+        defaultSharesOut
+    )
+    .accounts({
+        pool: poolAccountAddress,
+        poolAssetsAccount: poolAssetKp.publicKey,
+        poolSharesAccount: poolShareKp.publicKey,
+        lbpManagerInfo: lbpManagerPda,
+    })
+    .view();
+    assert.ok(assetsIn.div(SOL).eq(new anchor.BN(expectedAssetsIn)), "assetsIn should be 1");
+  });
+
+  // it("test start weight small open", async () => {
+  //   const poolId = new anchor.BN(102);
+  //   const poolAccountAddress = await get_pool_account_address(poolId);
+  //   const poolSettings = await getDefaultPoolSettings();
+  //   poolSettings.weightStart = SOL.div(new anchor.BN(10)); // 0.1 sol
+  //   poolSettings.weightEnd = SOL.div(new anchor.BN(10)).mul(new anchor.BN(9)); // 0.9 sol
+  //   await create_pool(poolSettings, poolId);
+  //   await setUp(poolAccountAddress);
+
+
+  // })
 });
