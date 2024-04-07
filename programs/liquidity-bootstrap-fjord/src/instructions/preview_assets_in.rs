@@ -30,7 +30,5 @@ pub fn handler(ctx: Context<PreviewAssetsIn>, shares_out: u64) -> Result<u64> {
 
   let mut assets_in: u64 = assets_in_result.unwrap();
 
-  assets_in = assets_in * (1_000_000_000 + lbp_manager_info.swap_fee);
-
   Ok(assets_in)
 }

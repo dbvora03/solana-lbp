@@ -70,7 +70,17 @@ pub struct CreatePool<'info> {
 }
 
 
-pub fn handler(ctx: Context<CreatePool>, settings: PoolSettings, id: u64, shares: u64, assets: u64) -> Result<()> {
+pub fn handler(
+  ctx: Context<CreatePool>, 
+  settings: PoolSettings, 
+  id: u64, 
+  shares: u64, 
+  assets: u64,
+  total_swap_fees_asset: u64,
+  total_swap_fees_share: u64,
+  total_purchased: u64,
+  total_referred: u64,
+) -> Result<()> {
   let pool = &mut ctx.accounts.pool;
   if pool.initialized {
     return err!(ErrorCode::AlreadyInitialized);
@@ -104,12 +114,16 @@ pub fn handler(ctx: Context<CreatePool>, settings: PoolSettings, id: u64, shares
     return err!(ErrorCode::InvalidAssetValue);
   }
 
-  pool.settings = settings;
   pool.id = id;
+  pool.lbp_manager = *ctx.accounts.lbp_manager_info.to_account_info().key;
+  pool.settings = settings;
   pool.initialized = true;
   pool.closed = false;
+  pool.total_swap_fees_asset = total_swap_fees_asset;
+  pool.total_swap_fees_share = total_swap_fees_share;
+  pool.total_purchased = total_purchased;
+  pool.total_referred = total_referred;
   pool.bump = ctx.bumps.pool;
-  pool.lbp_manager = *ctx.accounts.lbp_manager_info.to_account_info().key;
 
   token::transfer(
     CpiContext::new(

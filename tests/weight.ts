@@ -7,17 +7,18 @@ import { assert } from "chai";
 import { SYSVAR_RENT_PUBKEY } from "@solana/web3.js";
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
 
-describe("swap", () => {
+describe.only("weight", () => {
   const SOL = new anchor.BN(1_000_000_000);
   const ONE_DAY = new anchor.BN(86400);
   const TWO_DAYS = new anchor.BN(172800);
+  const TEN_DAYS = new anchor.BN(864000);
   const BN_2 = new anchor.BN(2);
   const BN_256 = new anchor.BN(256);
   const BN_0 = new anchor.BN(0);
   const BN_1 = new anchor.BN(1);
   const ZERO_ADDRESS = new anchor.web3.PublicKey("11111111111111111111111111111111");
 
-  const managerId = new anchor.BN(2);
+  const managerId = new anchor.BN(3);
 
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env();
@@ -61,12 +62,8 @@ describe("swap", () => {
     });
 };
 
-  const create_pool = async () => {
+ const create_pool = async () => {
     let now = new anchor.BN(await provider.connection.getBlockTime(await provider.connection.getSlot()))
-    
-    
-    const virtualAssets = new anchor.BN(SOL.mul(new anchor.BN(1000)));
-    const virtualShares = new anchor.BN(SOL.mul(new anchor.BN(1000)));
     // const maxSharesOut = BN_2.pow(BN_256).sub(new anchor.BN(1)); // type(uint256).max
     
     const weightStart = SOL.div(new anchor.BN(2));
@@ -84,6 +81,8 @@ describe("swap", () => {
 
     const initialShareAmount = SOL.mul(new anchor.BN(1000));
     const initialAssetAmount = SOL.mul(new anchor.BN(1000));
+    const virtualAssets = BN_0;
+    const virtualShares = BN_0;
     const totalSwapFeesAsset = new anchor.BN(0);
     const totalSwapFeesShare = new anchor.BN(0);
 
@@ -268,38 +267,20 @@ describe("swap", () => {
 
   });
 
-  it("should swap success", async () => {
-    const sharesOut = SOL;
-    const maxAssetsIn = await program.methods.previewAssetsIn(
-      sharesOut
+  it("test normal weight", async () => {
+    const defaultSharesOut = new anchor.BN(10);
+    const expectedAssetsIn = 10;
+    // in this example the assetWeight and shareWeight would be equal
+    let assetsIn = await program.methods.previewAssetsIn(
+        defaultSharesOut
     )
     .accounts({
-      pool: poolAccountAddress,
-      poolAssetsAccount: poolAssetKp.publicKey,
-      poolSharesAccount: poolShareKp.publicKey,
-      lbpManagerInfo: lbpManagerPda,
+        pool: poolAccountAddress,
+        poolAssetsAccount: poolAssetKp.publicKey,
+        poolSharesAccount: poolShareKp.publicKey,
+        lbpManagerInfo: lbpManagerPda,
     })
     .view();
-    console.log(maxAssetsIn);
-    await program.methods.swapAssetsForExactShares(
-      bob.publicKey,
-      sharesOut,
-      maxAssetsIn,
-      alice.publicKey
-    ).accounts({
-      depositor: alice.publicKey,
-      pool: poolAccountAddress,
-      poolAssetsAccount: poolAssetKp.publicKey,
-      poolSharesAccount: poolShareKp.publicKey,
-      depositorAssetsAccount: depositorAssetTokenAccount,
-      buyerStats: buyerStatsPda,
-      referrerStats: referrerStatsPda,
-      lbpManagerInfo: lbpManagerPda,
-      tokenProgram: splToken.TOKEN_PROGRAM_ID,
-      rent: SYSVAR_RENT_PUBKEY,
-      systemProgram: anchor.web3.SystemProgram.programId,
-    })
-    .signers([alice])
-    .rpc()
+    console.log(assetsIn.toString())
   });
 });

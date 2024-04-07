@@ -8,7 +8,7 @@ import { SYSVAR_RENT_PUBKEY } from "@solana/web3.js";
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
 import { PublicKey } from '@solana/web3.js';
 
-describe.only("liquidity-bootstrap-pool-factory", () => {
+describe("liquidity-bootstrap-pool-factory", () => {
     const SOL = new anchor.BN(1_000_000_000);
     const ONE_DAY = new anchor.BN(86400);
     const TWO_DAYS = new anchor.BN(172800);

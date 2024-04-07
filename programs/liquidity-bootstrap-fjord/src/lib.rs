@@ -48,8 +48,18 @@ pub mod liquidity_bootstrap_fjord {
         instructions::transfer_ownership::handler(ctx, new_owner)
     }
 
-    pub fn create_pool(ctx: Context<CreatePool>, settings: PoolSettings, id: u64, shares: u64, assets: u64) -> Result<()> {
-        instructions::create_pool::handler(ctx, settings, id, shares, assets)
+    pub fn create_pool(
+        ctx: Context<CreatePool>, 
+        settings: PoolSettings, 
+        id: u64, 
+        shares: u64, 
+        assets: u64,
+        total_swap_fees_asset: u64,
+        total_swap_fees_share: u64,
+        total_purchased: u64,
+        total_referred: u64,
+    ) -> Result<()> {
+        instructions::create_pool::handler(ctx, settings, id, shares, assets, total_swap_fees_asset, total_swap_fees_share, total_purchased, total_referred)
     }
 
     pub fn preview_assets_in(ctx: Context<PreviewAssetsIn>, shares_out: u64) -> Result<u64> {

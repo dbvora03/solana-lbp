@@ -92,14 +92,8 @@ pub fn handler (
     return err!(ErrorCode::MathError);
   }
   let mut assets_in = assets_in_result.unwrap();
-
-  // Calculate the swap fee
   let swap_fees: u64 = assets_in * manager.swap_fee;
-
-  // Add to Assets In
   assets_in += swap_fees;
-
-  // Increment totalSwapFeesAsset
   pool.total_swap_fees_asset += swap_fees;
 
   // Add slippage error function
@@ -112,17 +106,17 @@ pub fn handler (
     return err!(ErrorCode::MaxAssetsInExceeded);
   }
 
-  // token::transfer(
-  //   CpiContext::new(
-  //       ctx.accounts.token_program.to_account_info(),
-  //       Transfer {
-  //           from: ctx.accounts.depositor_assets_account.to_account_info(),
-  //           to: ctx.accounts.pool_assets_account.to_account_info(),
-  //           authority: ctx.accounts.depositor.to_account_info(),
-  //       },
-  //   ),
-  //   assets_in,
-  // )?;
+  token::transfer(
+    CpiContext::new(
+        ctx.accounts.token_program.to_account_info(),
+        Transfer {
+            from: ctx.accounts.depositor_assets_account.to_account_info(),
+            to: ctx.accounts.pool_assets_account.to_account_info(),
+            authority: ctx.accounts.depositor.to_account_info(),
+        },
+    ),
+    assets_in,
+  )?;
 
   let total_purchased_after = pool.total_purchased + shares_out;
 
