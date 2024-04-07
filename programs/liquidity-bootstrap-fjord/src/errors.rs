@@ -28,4 +28,10 @@ pub enum ErrorCode {
 
   #[msg("Invalid Asset Value")]
   InvalidAssetValue,
+
+  #[msg("Invalid Asset Or Share")]
+  InvalidAssetOrShare,
+
+  #[msg("Sale Period Low")]
+  SalePeriodLow,
 }

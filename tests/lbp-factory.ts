@@ -6,6 +6,7 @@ import { LiquidityBootstrapFjord } from "../target/types/liquidity_bootstrap_fjo
 import { assert, expect } from "chai";
 import { SYSVAR_RENT_PUBKEY } from "@solana/web3.js";
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
+import { PublicKey } from '@solana/web3.js';
 
 describe("liquidity-bootstrap-pool-factory", () => {
     const SOL = new anchor.BN(1_000_000_000);
@@ -15,6 +16,7 @@ describe("liquidity-bootstrap-pool-factory", () => {
     const BN_256 = new anchor.BN(256);
     const BN_0 = new anchor.BN(0);
     const BN_1 = new anchor.BN(1);
+    const ZERO_ADDRESS = new PublicKey("11111111111111111111111111111111");
 
     const now = new anchor.BN(Math.floor(Date.now() / 1000));
     const saleStart = now.add(ONE_DAY);
@@ -439,7 +441,7 @@ describe("liquidity-bootstrap-pool-factory", () => {
         }
     });
 
-    it.only("should revert invalid weight end max", async () => {
+    it("should revert invalid weight end max", async () => {
         let poolId = new anchor.BN(7);
         let pool_account_address = await get_pool_account_address(poolId);
         let weightEnd = SOL.mul(new anchor.BN(0.99)).add(BN_1);
@@ -638,8 +640,8 @@ describe("liquidity-bootstrap-pool-factory", () => {
     it("should revert invalid start date", async () => {
         let poolId = new anchor.BN(11);
         let pool_account_address = await get_pool_account_address(poolId);
-        let saleStart = now.sub(ONE_DAY).add(BN_1);
         let saleEnd = now.add(TWO_DAYS);
+        let saleStart = saleEnd.sub(ONE_DAY).add(BN_1);
         const poolSettings = {
             asset: assetMint,
             share: shareMint,
@@ -681,9 +683,208 @@ describe("liquidity-bootstrap-pool-factory", () => {
             .rpc()
             expect.fail("Should have thrown an error")
         } catch (error) {
-            expect(error.error.errorMessage).to.equal("SalePeriodLow");
+            expect(error.error.errorMessage).to.equal("Sale Period Low");
         }
     });
+
+    it("should revert invalid end date", async () => {
+        let poolId = new anchor.BN(12);
+        let pool_account_address = await get_pool_account_address(poolId);
+        let now = await provider.connection.getBlockTime(await provider.connection.getSlot())
+        let saleEnd = new anchor.BN(now).sub(ONE_DAY);
+        let saleStart = saleEnd.sub(ONE_DAY);
+        const poolSettings = {
+            asset: assetMint,
+            share: shareMint,
+            creator: depositor.publicKey,
+            virtualAssets,
+            virtualShares,
+            maxSharePrice,
+            maxSharesOut,
+            maxAssetsIn,
+            weightStart,
+            weightEnd,
+            saleStart,
+            saleEnd,
+            vestCliff,
+            vestEnd,
+            sellingAllowed,
+        };
+        try {
+            await program.methods.createPool(
+                poolSettings,
+                poolId,
+                initialShareAmount,
+                initialAssetAmount,
+            ).accounts({
+                depositor: depositor.publicKey,
+                assetMint,
+                shareMint,
+                depositorAccountAsset: depositorAssetTokenAccount,
+                depositorAccountShare: depositorShareTokenAccount,
+                lbpManagerInfo: lbpManagerPda,
+                pool: pool_account_address,
+                poolAccountAsset: poolAssetKp.publicKey,
+                poolAccountShare: poolShareKp.publicKey,
+                tokenProgram: splToken.TOKEN_PROGRAM_ID,
+                rent: SYSVAR_RENT_PUBKEY,
+                systemProgram: anchor.web3.SystemProgram.programId,
+            })
+            .signers([depositor, poolAssetKp, poolShareKp])
+            .rpc()
+            expect.fail("Should have thrown an error")
+        } catch (error) {
+            expect(error.error.errorMessage).to.equal("Sale Period Low");
+        }
+    });
+
+    it("should revert invalid share zero", async () => {
+        let share = ZERO_ADDRESS;
+        let poolId = new anchor.BN(13);
+        let pool_account_address = await get_pool_account_address(poolId);
+        let poolSettings = {
+            asset: assetMint,
+            share,
+            creator: depositor.publicKey,
+            virtualAssets,
+            virtualShares,
+            maxSharePrice,
+            maxSharesOut,
+            maxAssetsIn,
+            weightStart,
+            weightEnd,
+            saleStart,
+            saleEnd,
+            vestCliff,
+            vestEnd,
+            sellingAllowed,
+        };
+        try {
+            await program.methods.createPool(
+                poolSettings,
+                poolId,
+                initialShareAmount,
+                initialAssetAmount,
+            ).accounts({
+                depositor: depositor.publicKey,
+                assetMint,
+                shareMint,
+                depositorAccountAsset: depositorAssetTokenAccount,
+                depositorAccountShare: depositorShareTokenAccount,
+                lbpManagerInfo: lbpManagerPda,
+                pool: pool_account_address,
+                poolAccountAsset: poolAssetKp.publicKey,
+                poolAccountShare: poolShareKp.publicKey,
+                tokenProgram: splToken.TOKEN_PROGRAM_ID,
+                rent: SYSVAR_RENT_PUBKEY,
+                systemProgram: anchor.web3.SystemProgram.programId,
+            })
+            .signers([depositor, poolAssetKp, poolShareKp])
+            .rpc()
+            expect.fail("Should have thrown an error")
+        } catch (error) {
+            expect(error.error.errorMessage).to.equal("A raw constraint was violated");
+        }
+    });
+
+    it("should revert invalid asset zero", async () => {
+        let asset = ZERO_ADDRESS;
+        let poolId = new anchor.BN(14);
+        let pool_account_address = await get_pool_account_address(poolId);
+        let poolSettings = {
+            asset,
+            share: shareMint,
+            creator: depositor.publicKey,
+            virtualAssets,
+            virtualShares,
+            maxSharePrice,
+            maxSharesOut,
+            maxAssetsIn,
+            weightStart,
+            weightEnd,
+            saleStart,
+            saleEnd,
+            vestCliff,
+            vestEnd,
+            sellingAllowed,
+        };
+        try {
+            await program.methods.createPool(
+                poolSettings,
+                poolId,
+                initialShareAmount,
+                initialAssetAmount,
+            ).accounts({
+                depositor: depositor.publicKey,
+                assetMint,
+                shareMint,
+                depositorAccountAsset: depositorAssetTokenAccount,
+                depositorAccountShare: depositorShareTokenAccount,
+                lbpManagerInfo: lbpManagerPda,
+                pool: pool_account_address,
+                poolAccountAsset: poolAssetKp.publicKey,
+                poolAccountShare: poolShareKp.publicKey,
+                tokenProgram: splToken.TOKEN_PROGRAM_ID,
+                rent: SYSVAR_RENT_PUBKEY,
+                systemProgram: anchor.web3.SystemProgram.programId,
+            })
+            .signers([depositor, poolAssetKp, poolShareKp])
+            .rpc()
+            expect.fail("Should have thrown an error")
+        } catch (error) {
+            expect(error.error.errorMessage).to.equal("A raw constraint was violated");
+        }
+    });
+
+    it("should revert invalid asset", async () => {
+        let asset = shareMint;
+        let poolId = new anchor.BN(15);
+        let pool_account_address = await get_pool_account_address(poolId);
+        let poolSettings = {
+            asset,
+            share: shareMint,
+            creator: depositor.publicKey,
+            virtualAssets,
+            virtualShares,
+            maxSharePrice,
+            maxSharesOut,
+            maxAssetsIn,
+            weightStart,
+            weightEnd,
+            saleStart,
+            saleEnd,
+            vestCliff,
+            vestEnd,
+            sellingAllowed,
+        };
+        try {
+            await program.methods.createPool(
+                poolSettings,
+                poolId,
+                initialShareAmount,
+                initialAssetAmount,
+            ).accounts({
+                depositor: depositor.publicKey,
+                assetMint,
+                shareMint,
+                depositorAccountAsset: depositorAssetTokenAccount,
+                depositorAccountShare: depositorShareTokenAccount,
+                lbpManagerInfo: lbpManagerPda,
+                pool: pool_account_address,
+                poolAccountAsset: poolAssetKp.publicKey,
+                poolAccountShare: poolShareKp.publicKey,
+                tokenProgram: splToken.TOKEN_PROGRAM_ID,
+                rent: SYSVAR_RENT_PUBKEY,
+                systemProgram: anchor.web3.SystemProgram.programId,
+            })
+            .signers([depositor, poolAssetKp, poolShareKp])
+            .rpc()
+            expect.fail("Should have thrown an error")
+        } catch (error) {
+            expect(error.error.errorMessage).to.equal("A raw constraint was violated");
+        }
+    });
+
 
     it("should revert for invalid fee recipient", async () => {
         // TODO: don't understand this
