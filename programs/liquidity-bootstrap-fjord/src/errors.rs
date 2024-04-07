@@ -2,6 +2,10 @@ use anchor_lang::error_code;
 
 #[error_code]
 pub enum ErrorCode {
+
+  #[msg("Max Fee Exceeded")]
+  MaxFeeExceeded,
+
   #[msg("The pool has already been initialized.")]
   AlreadyInitialized,
 

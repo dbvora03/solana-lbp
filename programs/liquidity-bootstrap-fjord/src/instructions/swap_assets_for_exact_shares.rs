@@ -10,17 +10,32 @@ pub struct SwapAssetsForExactShares<'info> {
   #[account(mut)]
   pub depositor: Signer<'info>,
 
-  #[account(mut)]
+  #[account(
+    mut,
+    constraint = pool.lbp_manager == lbp_manager_info.key()
+  )]
   pub pool: Account<'info, Pool>,
 
-  #[account(mut)]
+  #[account(
+    mut,
+    constraint = pool_assets_account.mint == pool.settings.asset,
+    constraint = pool_assets_account.owner == pool.to_account_info().key(),
+  )]
   pub pool_assets_account: Account<'info, TokenAccount>,
 
-  #[account(mut)]
+  #[account(
+    mut,
+    constraint = pool_shares_account.mint == pool.settings.share,
+    constraint = pool_shares_account.owner == pool.to_account_info().key(),
+  )]
   pub pool_shares_account: Account<'info, TokenAccount>,
 
-  #[account(mut)]
-  pub depositor_asset_account: Account<'info, TokenAccount>,
+  #[account(
+    mut,
+    constraint = depositor_assets_account.mint == pool.settings.asset,
+    constraint = depositor_assets_account.owner == depositor.key(),
+  )]
+  pub depositor_assets_account: Account<'info, TokenAccount>,
 
   #[account(
     init,
@@ -100,17 +115,17 @@ pub fn handler (
     return err!(ErrorCode::MaxAssetsInExceeded);
   }
 
-  token::transfer(
-    CpiContext::new(
-        ctx.accounts.token_program.to_account_info(),
-        Transfer {
-            from: ctx.accounts.depositor_asset_account.to_account_info(),
-            to: ctx.accounts.pool_assets_account.to_account_info(),
-            authority: ctx.accounts.depositor.to_account_info(),
-        },
-    ),
-    assets_in,
-  )?;
+  // token::transfer(
+  //   CpiContext::new(
+  //       ctx.accounts.token_program.to_account_info(),
+  //       Transfer {
+  //           from: ctx.accounts.depositor_assets_account.to_account_info(),
+  //           to: ctx.accounts.pool_assets_account.to_account_info(),
+  //           authority: ctx.accounts.depositor.to_account_info(),
+  //       },
+  //   ),
+  //   assets_in,
+  // )?;
 
   let total_purchased_after = pool.total_purchased + shares_out;
 
@@ -126,10 +141,12 @@ pub fn handler (
     referrer_stats.referred_amount += assets_referred;
   }
 
-
-
-
-  // TODO: Emit an event here
+  // emit!(Buy {
+  //   caller: *ctx.accounts.depositor.key,
+  //   assets: assets_in,
+  //   shares: shares_out,
+  //   swap_fee: swap_fees,
+  // });
 
   Ok(assets_in)
 }

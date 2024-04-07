@@ -1,7 +1,8 @@
 use anchor_lang::prelude::*;
 use crate::state::*;
+use crate::utils::*;
 use crate::errors::ErrorCode;
-use anchor_spl::token::{self, TokenAccount, Transfer, Mint, Token};
+use anchor_spl::token::{self, TokenAccount, Transfer, Token};
 
 #[derive(Accounts)]
 pub struct Close<'info> {
@@ -9,11 +10,20 @@ pub struct Close<'info> {
   #[account(mut)]
   pub signer: Signer<'info>,
 
-  #[account(mut)]
+  #[account(
+    mut,
+    constraint = pool_assets_account.mint == pool.settings.asset,
+    constraint = pool_assets_account.owner == pool.to_account_info().key(),
+  )]
   pub pool_assets_account: Account<'info, TokenAccount>,
 
-  #[account(mut)]
+  #[account(
+    mut,
+    constraint = pool_shares_account.mint == pool.settings.share,
+    constraint = pool_shares_account.owner == pool.to_account_info().key(),
+  )]
   pub pool_shares_account: Account<'info, TokenAccount>,
+
 
   #[account(
     mut,
@@ -46,9 +56,11 @@ pub struct Close<'info> {
   #[account(mut)]
   pub lbp_manager_info: Account<'info, LBPManagerInfo>,
 
-  #[account(mut)]
+  #[account(
+    mut,
+    constraint = pool.lbp_manager == lbp_manager_info.key()
+  )]
   pub pool: Account<'info, Pool>,
-
 
   pub token_program: Program<'info, Token>,
   pub system_program: Program<'info, System>,
@@ -63,8 +75,6 @@ pub fn handler(ctx: Context<Close>) -> Result<()> {
   if pool.closed {
     return err!(ErrorCode::ClosingDisallowed);
   }
-
-  // TODO: Revert if the pool is already closed
 
   let unix_timestamp = match Clock::get() {
     Ok(clock) => clock.unix_timestamp,
@@ -91,7 +101,7 @@ pub fn handler(ctx: Context<Close>) -> Result<()> {
               authority: ctx.accounts.signer.to_account_info(),
           },
       ),
-      (platform_fees + pool.total_swap_fees_asset),
+      platform_fees + pool.total_swap_fees_asset,
     )?;
 
     token::transfer(
@@ -140,7 +150,12 @@ pub fn handler(ctx: Context<Close>) -> Result<()> {
 
   pool.closed = true;
 
-  // TODO: Emit an event here
+  emit!(ClosePool {
+    caller: *ctx.accounts.signer.to_account_info().key,
+    platform_fees: platform_fees,
+    swap_fees_asset: pool.total_swap_fees_asset,
+    swap_fees_share: pool.total_swap_fees_share,
+  });
 
 
   Ok(())

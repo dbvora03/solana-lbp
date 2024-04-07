@@ -1,8 +1,8 @@
 use anchor_lang::prelude::*;
 use crate::state::*;
+use crate::utils::*;
 use crate::errors::ErrorCode;
 use anchor_spl::token::{self, TokenAccount, Transfer, Mint, Token};
-
 
 #[derive(Accounts)]
 #[instruction(settings: PoolSettings, id: u64)]
@@ -43,7 +43,7 @@ pub struct CreatePool<'info> {
         &id.to_le_bytes().as_ref(),
       ],
       payer = depositor,
-      space = 8 + 32 + 32 + 32 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 1 + (8 + 1 + 8 + 8 + 8 + 1),
+      space = 8 + 32 + 32 + 32 + 32 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 1 + (8 + 1 + 8 + 8 + 8 + 1),
       bump,
     )]
     pub pool: Box<Account<'info, Pool>>,
@@ -109,6 +109,7 @@ pub fn handler(ctx: Context<CreatePool>, settings: PoolSettings, id: u64, shares
   pool.initialized = true;
   pool.closed = false;
   pool.bump = ctx.bumps.pool;
+  pool.lbp_manager = *ctx.accounts.lbp_manager_info.to_account_info().key;
 
   token::transfer(
     CpiContext::new(
@@ -134,7 +135,9 @@ pub fn handler(ctx: Context<CreatePool>, settings: PoolSettings, id: u64, shares
     shares,
   )?;
 
-  // TODO: emit log here: Pool created
+  emit!(PoolCreated {
+    pool: *ctx.accounts.pool.to_account_info().key,
+  });
 
   Ok(())
 }

@@ -9,16 +9,31 @@ pub struct SwapExactSharesForAssets<'info> {
   #[account(mut)]
   pub depositor: Signer<'info>,
 
-  #[account(mut)]
+  #[account(
+    mut,
+    constraint = pool.lbp_manager == lbp_manager_info.key()
+  )]
   pub pool: Account<'info, Pool>,
 
-  #[account(mut)]
+  #[account(
+    mut,
+    constraint = pool_assets_account.mint == pool.settings.asset,
+    constraint = pool_assets_account.owner == pool.to_account_info().key(),
+  )]
   pub pool_assets_account: Account<'info, TokenAccount>,
 
-  #[account(mut)]
+  #[account(
+    mut,
+    constraint = pool_shares_account.mint == pool.settings.share,
+    constraint = pool_shares_account.owner == pool.to_account_info().key(),
+  )]
   pub pool_shares_account: Account<'info, TokenAccount>,
 
-  #[account(mut)]
+  #[account(
+    mut,
+    constraint = depositor_assets_account.mint == pool.settings.asset,
+    constraint = depositor_assets_account.owner == depositor.key(),
+  )]
   pub depositor_assets_account: Account<'info, TokenAccount>,
 
   #[account(
@@ -29,6 +44,7 @@ pub struct SwapExactSharesForAssets<'info> {
       &depositor.key().as_ref(),
     ],
     payer = depositor,
+    has_one = depositor,
     space = 8 + 32 + 32 + 8 + 8 + 1,
     bump
   )]
@@ -55,10 +71,10 @@ pub fn handler(
   let shares: u64 = ctx.accounts.pool_shares_account.amount;
   let buyer_stats = &mut ctx.accounts.buyer_stats;
 
-  let swap_fees = shares_in * manager.swap_fee;
-  pool.total_swap_fees_share += swap_fees;
+  let swap_fee = shares_in * manager.swap_fee;
+  pool.total_swap_fees_share += swap_fee;
 
-  let assets_out_result = preview_assets_out(pool, shares_in - swap_fees, assets, shares);
+  let assets_out_result = preview_assets_out(pool, shares_in - swap_fee, assets, shares);
 
   if assets_out_result.is_err() {
     return err!(ErrorCode::MathError);
@@ -70,13 +86,13 @@ pub fn handler(
     return err!(ErrorCode::SlippageExceeded);
   }
 
-  if (assets >= pool.settings.max_assets_in) {
+  if assets >= pool.settings.max_assets_in {
     return err!(ErrorCode::MaxAssetsInExceeded);
   }
 
   let total_purchased_before = pool.total_purchased;
 
-  if (total_purchased_before >= pool.settings.max_shares_out || total_purchased_before > shares) {
+  if total_purchased_before >= pool.settings.max_shares_out || total_purchased_before > shares {
     return err!(ErrorCode::MaxSharesExceeded);
   }
 
@@ -95,6 +111,12 @@ pub fn handler(
     assets_out,
   )?;
 
+  emit!(Sell {
+    caller: *ctx.accounts.depositor.to_account_info().key,
+    shares: shares_in,
+    assets: assets_out,
+    swap_fee: swap_fee
+  });
 
   Ok(assets_out)
 }

@@ -4,8 +4,6 @@ use crate::state::*;
 use crate::utils::*;
 use crate::errors::ErrorCode;
 
-use anchor_lang::error_code;
-
 
 #[event]
 pub struct Buy {
@@ -21,16 +19,31 @@ pub struct SwapExactAssetsForShares<'info> {
   #[account(mut)]
   pub depositor: Signer<'info>,
 
-  #[account(mut)]
+  #[account(
+    mut,
+    constraint = pool.lbp_manager == lbp_manager_info.key()
+  )]
   pub pool: Account<'info, Pool>,
 
-  #[account(mut)]
+  #[account(
+    mut,
+    constraint = pool_assets_account.mint == pool.settings.asset,
+    constraint = pool_assets_account.owner == pool.to_account_info().key(),
+  )]
   pub pool_assets_account: Account<'info, TokenAccount>,
 
-  #[account(mut)]
+  #[account(
+    mut,
+    constraint = pool_shares_account.mint == pool.settings.share,
+    constraint = pool_shares_account.owner == pool.to_account_info().key(),
+  )]
   pub pool_shares_account: Account<'info, TokenAccount>,
 
-  #[account(mut)]
+  #[account(
+    mut,
+    constraint = depositor_asset_account.mint == pool.settings.asset,
+    constraint = depositor_asset_account.owner == depositor.key(),
+  )]
   pub depositor_asset_account: Account<'info, TokenAccount>,
 
   #[account(
@@ -128,6 +141,13 @@ pub fn handler(
     pool.total_referred += assets_referred;
     referrer_stats.referred_amount += assets_referred;
   }
+
+  emit!(Buy {
+    caller: *ctx.accounts.depositor.key,
+    assets: assets_in,
+    shares: shares_out,
+    swap_fee: swap_fee,
+  });
 
   Ok(assets_in) 
 }

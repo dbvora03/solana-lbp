@@ -22,6 +22,7 @@ pub struct PoolSettings {
 #[account]
 pub struct Pool {
   pub id: u64, // 8
+  pub lbp_manager: Pubkey, // 32
   pub settings: PoolSettings,
   pub initialized: bool, // 1
   pub closed: bool, // 1
