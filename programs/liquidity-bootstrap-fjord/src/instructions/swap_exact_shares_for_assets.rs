@@ -5,6 +5,7 @@ use crate::utils::*;
 use crate::state::*;
 
 #[derive(Accounts)]
+#[instruction(recipient: Pubkey)]
 pub struct SwapExactSharesForAssets<'info> {
   #[account(mut)]
   pub depositor: Signer<'info>,
@@ -41,10 +42,9 @@ pub struct SwapExactSharesForAssets<'info> {
     seeds = [
       b"user_stats".as_ref(),
       &pool.key().as_ref(),
-      &depositor.key().as_ref(),
+      &recipient.key().as_ref(),
     ],
     payer = depositor,
-    // has_one = depositor,
     space = 8 + 32 + 32 + 8 + 8 + 1,
     bump
   )]

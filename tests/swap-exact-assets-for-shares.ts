@@ -109,10 +109,6 @@ describe("swap exact assets for shares", () => {
         poolId,
         initialShareAmount,
         initialAssetAmount,
-        totalSwapFeesAsset,
-        totalSwapFeesShare,
-        totalPurchased,
-        totalReferred
     ).accounts({
         depositor: creator.publicKey,
         assetMint,
