@@ -85,7 +85,6 @@ pub fn handler(
   ctx: Context<SwapExactAssetsForShares>,
   referrer: Pubkey,
   recipient: Pubkey,
-  depositor: Pubkey,
   assets_in: u64,
   min_shares_out: u64,
 ) -> Result<u64> {
