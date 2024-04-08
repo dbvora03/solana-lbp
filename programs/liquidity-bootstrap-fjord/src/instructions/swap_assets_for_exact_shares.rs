@@ -101,14 +101,14 @@ pub fn handler (
   msg!("Swap assets for exact shares: assets_in: {}, max_assets_in: {}", assets_in, max_assets_in);
 
   // Add slippage error function
-  // if assets_in > max_assets_in {
-  //   return err!(ErrorCode::SlippageExceeded);
-  // }
+  if assets_in > max_assets_in {
+    return err!(ErrorCode::SlippageExceeded);
+  }
 
-  // // Call the swapAssetsForExactShares function 
-  // if assets + assets_in - swap_fees >= pool.settings.max_assets_in {
-  //   return err!(ErrorCode::MaxAssetsInExceeded);
-  // }
+  // Call the swapAssetsForExactShares function 
+  if assets + assets_in - swap_fees >= pool.settings.max_assets_in {
+    return err!(ErrorCode::MaxAssetsInExceeded);
+  }
 
   token::transfer(
     CpiContext::new(
