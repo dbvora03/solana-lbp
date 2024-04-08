@@ -68,7 +68,6 @@ pub fn handler (
     return err!(ErrorCode::MathError);
   }
   let mut assets_in = assets_in_result.unwrap();
-  msg!("assets_in from preview: {}", assets_in);
 
   let swap_fees: u64 = assets_in * manager.swap_fee;
   assets_in += swap_fees;
@@ -78,7 +77,6 @@ pub fn handler (
   if assets_in > max_assets_in {
     return err!(ErrorCode::SlippageExceeded);
   }
-  msg!("Swap assets for exact shares: assets_in: {}, max_assets_in: {}", assets_in, max_assets_in);
 
   // Call the swapAssetsForExactShares function 
   if assets + assets_in - swap_fees >= pool.settings.max_assets_in {

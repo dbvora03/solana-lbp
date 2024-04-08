@@ -252,14 +252,10 @@ describe("swap exact assets for shares", () => {
     })
     .view();
 
-    console.log("here", minSharesOut.toString());
-
     let buyEvent = null;
     const id = program.addEventListener('Buy', (event, slot) => {
       buyEvent = event;
     });
-
-    console.log("here", depositor.publicKey.toString());
 
     await program.methods.swapExactAssetsForShares(
         depositor.publicKey,
@@ -363,8 +359,6 @@ describe("swap exact assets for shares", () => {
         lbpManagerInfo: lbpManagerPda,
       })
       .view();
-
-      console.log("minSharesOut2", minSharesOut2.toString());
   
       await program.methods.swapExactAssetsForShares(
         depositor.publicKey,
@@ -388,7 +382,6 @@ describe("swap exact assets for shares", () => {
       if (buyEvent) {
         const assetsIn2 = buyEvent.assets;
         const sharesOut2 = buyEvent.shares;
-        console.log("here", assetsIn2.toString(), sharesOut2.toString());
   
         const poolAssetAmount = (await provider.connection.getTokenAccountBalance(poolAssetKp.publicKey)).value.amount;
         assert.ok(poolAssetAmount == new anchor.BN(assetsIn1).add(defaultInitialAssetAmount).add(assetsIn2).toString(), "assetsIn");

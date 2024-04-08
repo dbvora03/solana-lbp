@@ -82,9 +82,6 @@ pub fn handler(
 
   let assets_out = assets_out_result.unwrap();
 
-  msg!("assets_out: {}", assets_out);
-  msg!("min_assets_out: {}", min_assets_out);
-
   if assets_out < min_assets_out {
     return err!(ErrorCode::SlippageExceeded);
   }
