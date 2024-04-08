@@ -23,7 +23,7 @@ pub fn handler(ctx: Context<PreviewAssetsIn>, shares_out: u64) -> Result<u64> {
   let assets: u64 = ctx.accounts.pool_assets_account.amount;
   let shares: u64 = ctx.accounts.pool_shares_account.amount;
 
-  let assets_in_result = preview_assets_in(pool, shares_out, shares, assets);
+  let assets_in_result = preview_assets_in(pool, shares_out, assets, shares);
   if assets_in_result.is_err() {
     return err!(ErrorCode::MathError);
   }

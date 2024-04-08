@@ -287,14 +287,13 @@ describe.only("swap", () => {
       lbpManagerInfo: lbpManagerPda,
     })
     .view();
-    console.log(maxAssetsIn.toString());
 
     let swapFees = await getSwapFees();
     swapFees = maxAssetsIn.mul(swapFees);
     maxAssetsIn = maxAssetsIn.add(swapFees);
 
     let buyEvent = null;
-    program.addEventListener('Buy', (event, slot) => {
+    const id = program.addEventListener('Buy', (event, slot) => {
       buyEvent = event;
     });
 
@@ -322,8 +321,6 @@ describe.only("swap", () => {
     if (buyEvent) {
       const assetsIn = buyEvent.assets;
       const sharesOut = buyEvent.shares;
-      console.log('assetsIn', assetsIn.toString());
-      console.log('sharesOut', sharesOut.toString());
 
       const poolAssetAmount = (await provider.connection.getTokenAccountBalance(poolAssetKp.publicKey)).value.amount;
       assert.ok(poolAssetAmount == new anchor.BN(assetsIn).add(defaultInitialAssetAmount).toString(), "assetsIn");
@@ -340,7 +337,128 @@ describe.only("swap", () => {
     } else {
       expect.fail('Buy event not emitted');
     }
+
+    program.removeEventListener(id);
   });
 
-  
+  it("test second swap", async () => {
+    const poolId = new anchor.BN(202);
+    const poolAccountAddress = await get_pool_account_address(poolId);
+    const poolSettings = await getDefaultPoolSettings();
+    await create_pool(poolSettings, poolId);
+    await setUp(poolAccountAddress);
+
+    const sharesOut = SOL;
+    let maxAssetsIn = await program.methods.previewAssetsIn(
+      sharesOut
+    )
+    .accounts({
+      pool: poolAccountAddress,
+      poolAssetsAccount: poolAssetKp.publicKey,
+      poolSharesAccount: poolShareKp.publicKey,
+      lbpManagerInfo: lbpManagerPda,
+    })
+    .view();
+
+    let buyEvent = null;
+    const id = program.addEventListener('Buy', (event, slot) => {
+      buyEvent = event;
+    });
+
+    let swapFees = await getSwapFees();
+    swapFees = maxAssetsIn.mul(swapFees);
+    maxAssetsIn = maxAssetsIn.add(swapFees);
+
+    await program.methods.swapAssetsForExactShares(
+      bob.publicKey,
+      sharesOut,
+      maxAssetsIn,
+      alice.publicKey
+    ).accounts({
+      depositor: alice.publicKey,
+      pool: poolAccountAddress,
+      poolAssetsAccount: poolAssetKp.publicKey,
+      poolSharesAccount: poolShareKp.publicKey,
+      depositorAssetsAccount: depositorAssetTokenAccount,
+      buyerStats: buyerStatsPda,
+      referrerStats: referrerStatsPda,
+      lbpManagerInfo: lbpManagerPda,
+      tokenProgram: splToken.TOKEN_PROGRAM_ID,
+      rent: SYSVAR_RENT_PUBKEY,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    })
+    .signers([alice])
+    .rpc();
+
+    let assetsIn1;
+    let sharesOut1;
+
+    if (buyEvent) {
+      assetsIn1 = buyEvent.assets;
+      sharesOut1 = buyEvent.shares;
+    } else {
+      expect.fail('Buy event not emitted');
+    }
+
+    let maxAssetsIn2 = await program.methods.previewAssetsIn(
+      sharesOut
+    )
+    .accounts({
+      pool: poolAccountAddress,
+      poolAssetsAccount: poolAssetKp.publicKey,
+      poolSharesAccount: poolShareKp.publicKey,
+      lbpManagerInfo: lbpManagerPda,
+    })
+    .view();
+    console.log('maxAssetsIn2 from preview', maxAssetsIn2.toString());
+
+    let swapFees2 = await getSwapFees();
+    swapFees2 = maxAssetsIn2.mul(swapFees2);
+    maxAssetsIn2 = maxAssetsIn2.add(swapFees2);
+
+    console.log('maxAssetsIn2', maxAssetsIn2.toString());
+
+    await program.methods.swapAssetsForExactShares(
+      bob.publicKey,
+      sharesOut,
+      maxAssetsIn2,
+      alice.publicKey
+    ).accounts({
+      depositor: alice.publicKey,
+      pool: poolAccountAddress,
+      poolAssetsAccount: poolAssetKp.publicKey,
+      poolSharesAccount: poolShareKp.publicKey,
+      depositorAssetsAccount: depositorAssetTokenAccount,
+      buyerStats: buyerStatsPda,
+      referrerStats: referrerStatsPda,
+      lbpManagerInfo: lbpManagerPda,
+      tokenProgram: splToken.TOKEN_PROGRAM_ID,
+      rent: SYSVAR_RENT_PUBKEY,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    })
+    .signers([alice])
+    .rpc();
+
+    if (buyEvent) {
+      const assetsIn2 = buyEvent.assets;
+      const sharesOut2 = buyEvent.shares;
+      console.log("here", assetsIn2.toString(), sharesOut2.toString());
+
+      const poolAssetAmount = (await provider.connection.getTokenAccountBalance(poolAssetKp.publicKey)).value.amount;
+      assert.ok(poolAssetAmount == new anchor.BN(assetsIn1).add(defaultInitialAssetAmount).add(assetsIn2).toString(), "assetsIn");
+      assert.ok(maxAssetsIn2.toString() == assetsIn2, "assetsIn");
+
+      const lbpAccount = await program.account.pool.fetch(poolAccountAddress);
+      assert.ok(lbpAccount.totalPurchased.toString() == sharesOut1.add(sharesOut2).toString(), "totalPurchased");
+
+      const buyerStats = await program.account.userStats.fetch(buyerStatsPda);
+      assert.ok(buyerStats.purchased.toString() == sharesOut1.add(sharesOut2).toString(), "purchased");
+    } else {
+      expect.fail('Buy event not emitted');
+    }
+
+    program.removeEventListener(id);
+
+  });
+
 });

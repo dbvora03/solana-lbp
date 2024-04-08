@@ -38,7 +38,7 @@ pub struct SwapAssetsForExactShares<'info> {
   pub depositor_assets_account: Account<'info, TokenAccount>,
 
   #[account(
-    init,
+    init_if_needed,
     seeds = [
       b"user_stats".as_ref(),
       &pool.key().as_ref(),
@@ -51,7 +51,7 @@ pub struct SwapAssetsForExactShares<'info> {
   pub buyer_stats: Box<Account<'info, UserStats>>,
 
   #[account(
-    init,
+    init_if_needed,
     seeds = [
       b"user_stats".as_ref(),
       &pool.key().as_ref(),
@@ -92,20 +92,23 @@ pub fn handler (
     return err!(ErrorCode::MathError);
   }
   let mut assets_in = assets_in_result.unwrap();
+  msg!("assets_in from preview: {}", assets_in);
   
   let swap_fees: u64 = assets_in * manager.swap_fee;
   assets_in += swap_fees;
   pool.total_swap_fees_asset += swap_fees;
 
-  // Add slippage error function
-  if assets_in > max_assets_in {
-    return err!(ErrorCode::SlippageExceeded);
-  }
+  msg!("Swap assets for exact shares: assets_in: {}, max_assets_in: {}", assets_in, max_assets_in);
 
-  // Call the swapAssetsForExactShares function 
-  if assets + assets_in - swap_fees >= pool.settings.max_assets_in {
-    return err!(ErrorCode::MaxAssetsInExceeded);
-  }
+  // Add slippage error function
+  // if assets_in > max_assets_in {
+  //   return err!(ErrorCode::SlippageExceeded);
+  // }
+
+  // // Call the swapAssetsForExactShares function 
+  // if assets + assets_in - swap_fees >= pool.settings.max_assets_in {
+  //   return err!(ErrorCode::MaxAssetsInExceeded);
+  // }
 
   token::transfer(
     CpiContext::new(
