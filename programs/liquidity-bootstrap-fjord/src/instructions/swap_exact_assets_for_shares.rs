@@ -71,7 +71,6 @@ pub struct SwapExactAssetsForShares<'info> {
 pub fn handler(
   ctx: Context<SwapExactAssetsForShares>,
   recipient: Pubkey,
-  depositor: Pubkey,
   assets_in: u64,
   min_shares_out: u64,
 ) -> Result<u64> {
