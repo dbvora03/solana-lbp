@@ -14,7 +14,7 @@ pub struct Buy {
 }
 
 #[derive(Accounts)]
-#[instruction(referrer: Pubkey, recipient: Pubkey)]
+#[instruction(recipient: Pubkey)]
 pub struct SwapExactAssetsForShares<'info> {
 
   #[account(mut)]
@@ -60,19 +60,6 @@ pub struct SwapExactAssetsForShares<'info> {
   )]
   pub buyer_stats: Box<Account<'info, UserStats>>,
 
-  #[account(
-    init_if_needed,
-    seeds = [
-      b"user_stats".as_ref(),
-      &pool.key().as_ref(),
-      &referrer.key().as_ref(),
-    ],
-    payer = depositor,
-    space = 8 + 32 + 32 + 8 + 8 + 1,
-    bump,
-  )]
-  pub referrer_stats: Box<Account<'info, UserStats>>,
-
   pub lbp_manager_info: Account<'info, LBPManagerInfo>,
 
   pub token_program: Program<'info, Token>,
@@ -83,16 +70,13 @@ pub struct SwapExactAssetsForShares<'info> {
 
 pub fn handler(
   ctx: Context<SwapExactAssetsForShares>,
-  referrer: Pubkey,
   recipient: Pubkey,
-  depositor: Pubkey,
   assets_in: u64,
   min_shares_out: u64,
 ) -> Result<u64> {
   let pool = &mut ctx.accounts.pool;
   let lbp_manager_info = &mut ctx.accounts.lbp_manager_info;
   let buyer_stats = &mut ctx.accounts.buyer_stats;
-  let referrer_stats = &mut ctx.accounts.referrer_stats;
 
   let assets: u64 = ctx.accounts.pool_assets_account.amount;
   let shares: u64 = ctx.accounts.pool_shares_account.amount;
@@ -130,28 +114,21 @@ pub fn handler(
     assets_in,
   )?;
 
-  // let total_purchased_after = pool.total_purchased + shares_out;
+  let total_purchased_after = pool.total_purchased + shares_out;
 
-  // if total_purchased_after >= pool.settings.max_shares_out || total_purchased_after > shares {
-  //   return err!(ErrorCode::MaxSharesExceeded);
-  // }
+  if total_purchased_after >= pool.settings.max_shares_out || total_purchased_after > shares {
+    return err!(ErrorCode::MaxSharesExceeded);
+  }
 
-  // pool.total_purchased = total_purchased_after;
-  // buyer_stats.purchased += shares_out;
+  pool.total_purchased = total_purchased_after;
+  buyer_stats.purchased += shares_out;
 
-  // if referrer != Pubkey::default() && lbp_manager_info.referrer_fee > 0 {
-  //   let assets_referred: u64 = assets_in * lbp_manager_info.referrer_fee;
-  //   pool.total_referred += assets_referred;
-  //   referrer_stats.referred_amount += assets_referred;
-  // }
+  emit!(Buy {
+    caller: *ctx.accounts.depositor.key,
+    assets: assets_in,
+    shares: shares_out,
+    swap_fee: swap_fee,
+  });
 
-  // emit!(Buy {
-  //   caller: *ctx.accounts.depositor.key,
-  //   assets: assets_in,
-  //   shares: shares_out,
-  //   swap_fee: swap_fee,
-  // });
-
-  let assets_in = 0;
   Ok(assets_in) 
 }

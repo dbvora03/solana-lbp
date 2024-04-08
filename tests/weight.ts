@@ -15,7 +15,7 @@ describe("weight", () => {
   const TEN_DAYS = new anchor.BN(864000);
   const BN_0 = new anchor.BN(0);
 
-  const managerId = new anchor.BN(3);
+  const managerId = new anchor.BN(6);
 
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env();
@@ -259,7 +259,7 @@ describe("weight", () => {
   });
 
   it("test normal weight", async () => {
-    const poolId = new anchor.BN(101);
+    const poolId = new anchor.BN(601);
     const poolAccountAddress = await get_pool_account_address(poolId);
     const poolSettings = await getDefaultPoolSettings();
     await create_pool(poolSettings, poolId);
@@ -282,7 +282,7 @@ describe("weight", () => {
   });
 
   it("test max weight", async () => {
-    const poolId = new anchor.BN(102);
+    const poolId = new anchor.BN(602);
     const poolAccountAddress = await get_pool_account_address(poolId);
     const poolSettings = await getDefaultPoolSettings();
     poolSettings.weightStart = SOL.div(new anchor.BN(100)).mul(new anchor.BN(99)); // 0.99 sol
@@ -307,7 +307,7 @@ describe("weight", () => {
   });
 
   it("test min weight", async () => {
-    const poolId = new anchor.BN(103);
+    const poolId = new anchor.BN(603);
     const poolAccountAddress = await get_pool_account_address(poolId);
     const poolSettings = await getDefaultPoolSettings();
     const initialShareAmount = SOL.mul(new anchor.BN(10_000_000));

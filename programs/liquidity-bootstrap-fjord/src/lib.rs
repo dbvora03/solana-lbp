@@ -15,6 +15,8 @@ declare_id!("CP9AxdoRRY2Rmi9ZDRUqsvZJSwzJ6iZRa3WWajH3YGqf");
 
 #[program]
 pub mod liquidity_bootstrap_fjord {
+    use solana_program::pubkey;
+
     use super::*;
 
     pub fn initialize(
@@ -62,32 +64,32 @@ pub mod liquidity_bootstrap_fjord {
         instructions::preview_assets_in::handler(ctx, shares_out)
     }
 
-    pub fn swap_assets_for_exact_shares(ctx: Context<SwapAssetsForExactShares>, referrer: Pubkey, recipient: Pubkey, shares_out: u64, max_assets_in: u64) -> Result<u64> {
-        instructions::swap_assets_for_exact_shares::handler(ctx, referrer, recipient, shares_out, max_assets_in)
+    pub fn swap_assets_for_exact_shares(ctx: Context<SwapAssetsForExactShares>, recipient: Pubkey, shares_out: u64, max_assets_in: u64) -> Result<u64> {
+        instructions::swap_assets_for_exact_shares::handler(ctx, recipient, shares_out, max_assets_in)
     }
 
     pub fn preview_shares_out(ctx: Context<PreviewSharesOut>, assets_in: u64) -> Result<u64> {
         instructions::preview_shares_out::handler(ctx, assets_in)
     }
 
-    pub fn swap_exact_assets_for_shares(ctx: Context<SwapExactAssetsForShares>, referrer: Pubkey, assets_in: u64, min_shares_out: u64, recipient: Pubkey) -> Result<u64> {
-        instructions::swap_exact_assets_for_shares::handler(ctx, referrer, recipient, assets_in, min_shares_out)
+    pub fn swap_exact_assets_for_shares(ctx: Context<SwapExactAssetsForShares>, recipient: Pubkey, assets_in: u64, min_shares_out: u64) -> Result<u64> {
+        instructions::swap_exact_assets_for_shares::handler(ctx, recipient, assets_in, min_shares_out)
     }
 
     pub fn preview_assets_out(ctx: Context<PreviewAssetsOut>, shares_in: u64) -> Result<u64> {
         instructions::preview_assets_out::handler(ctx, shares_in)
     }
 
-    pub fn swap_exact_shares_for_assets(ctx: Context<SwapExactSharesForAssets>, shares_in: u64, min_assets_out: u64, recipient: Pubkey) -> Result<u64> {
-        instructions::swap_exact_shares_for_assets::handler(ctx, shares_in, min_assets_out, recipient)
+    pub fn swap_exact_shares_for_assets(ctx: Context<SwapExactSharesForAssets>, recipient: Pubkey, shares_in: u64, min_assets_out: u64) -> Result<u64> {
+        instructions::swap_exact_shares_for_assets::handler(ctx, recipient, shares_in, min_assets_out)
     }
 
     pub fn preview_shares_in(ctx: Context<PreviewSharesIn>, assets_out: u64) -> Result<u64> {
         instructions::preview_shares_in::handler(ctx, assets_out)
     }
 
-    pub fn swap_shares_for_exact_assets(ctx: Context<SwapSharesForExactAssets>, shares_in: u64, max_assets_out: u64, recipient: Pubkey) -> Result<u64> {
-        instructions::swap_shares_for_exact_assets::handler(ctx, shares_in, max_assets_out, recipient)
+    pub fn swap_shares_for_exact_assets(ctx: Context<SwapSharesForExactAssets>, recipient: Pubkey, assets_out: u64, max_shares_in: u64) -> Result<u64> {
+        instructions::swap_shares_for_exact_assets::handler(ctx, recipient, assets_out, max_shares_in)
     }
 }
 
