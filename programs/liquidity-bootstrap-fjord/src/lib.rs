@@ -62,8 +62,8 @@ pub mod liquidity_bootstrap_fjord {
         instructions::preview_assets_in::handler(ctx, shares_out)
     }
 
-    pub fn swap_assets_for_exact_shares(ctx: Context<SwapAssetsForExactShares>, referrer: Pubkey, recipient: Pubkey, shares_out: u64, max_assets_in: u64) -> Result<u64> {
-        instructions::swap_assets_for_exact_shares::handler(ctx, referrer, recipient, shares_out, max_assets_in)
+    pub fn swap_assets_for_exact_shares(ctx: Context<SwapAssetsForExactShares>, referrer: Pubkey, shares_out: u64, max_assets_in: u64, recipient: Pubkey) -> Result<u64> {
+        instructions::swap_assets_for_exact_shares::handler(ctx, referrer, shares_out, max_assets_in, recipient)
     }
 
     pub fn preview_shares_out(ctx: Context<PreviewSharesOut>, assets_in: u64) -> Result<u64> {
