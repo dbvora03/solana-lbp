@@ -109,10 +109,6 @@ describe("swap", () => {
         poolId,
         initialShareAmount,
         initialAssetAmount,
-        totalSwapFeesAsset,
-        totalSwapFeesShare,
-        totalPurchased,
-        totalReferred
     ).accounts({
         depositor: creator.publicKey,
         assetMint,
@@ -297,11 +293,12 @@ describe("swap", () => {
       buyEvent = event;
     });
 
+
     await program.methods.swapAssetsForExactShares(
       bob.publicKey,
+      alice.publicKey,
       sharesOut,
       maxAssetsIn,
-      alice.publicKey
     ).accounts({
       depositor: alice.publicKey,
       pool: poolAccountAddress,
@@ -371,9 +368,9 @@ describe("swap", () => {
 
     await program.methods.swapAssetsForExactShares(
       bob.publicKey,
+      alice.publicKey,
       sharesOut,
       maxAssetsIn,
-      alice.publicKey
     ).accounts({
       depositor: alice.publicKey,
       pool: poolAccountAddress,
@@ -418,11 +415,11 @@ describe("swap", () => {
 
     console.log('maxAssetsIn2', maxAssetsIn2.toString());
 
-    await program.methods.swapAssetsForExactShares(
+    const tx = await program.methods.swapAssetsForExactShares(
       bob.publicKey,
+      alice.publicKey,
       sharesOut,
       maxAssetsIn2,
-      alice.publicKey
     ).accounts({
       depositor: alice.publicKey,
       pool: poolAccountAddress,
@@ -439,6 +436,7 @@ describe("swap", () => {
     .signers([alice])
     .rpc();
 
+    console.log(tx)
     if (buyEvent) {
       const assetsIn2 = buyEvent.assets;
       const sharesOut2 = buyEvent.shares;

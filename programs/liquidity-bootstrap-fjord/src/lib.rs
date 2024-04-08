@@ -54,20 +54,16 @@ pub mod liquidity_bootstrap_fjord {
         id: u64, 
         shares: u64, 
         assets: u64,
-        total_swap_fees_asset: u64,
-        total_swap_fees_share: u64,
-        total_purchased: u64,
-        total_referred: u64,
     ) -> Result<()> {
-        instructions::create_pool::handler(ctx, settings, id, shares, assets, total_swap_fees_asset, total_swap_fees_share, total_purchased, total_referred)
+        instructions::create_pool::handler(ctx, settings, id, shares, assets)
     }
 
     pub fn preview_assets_in(ctx: Context<PreviewAssetsIn>, shares_out: u64) -> Result<u64> {
         instructions::preview_assets_in::handler(ctx, shares_out)
     }
 
-    pub fn swap_assets_for_exact_shares(ctx: Context<SwapAssetsForExactShares>, referrer: Pubkey, shares_out: u64, max_assets_in: u64, recipient: Pubkey) -> Result<u64> {
-        instructions::swap_assets_for_exact_shares::handler(ctx, referrer, shares_out, max_assets_in, recipient)
+    pub fn swap_assets_for_exact_shares(ctx: Context<SwapAssetsForExactShares>, referrer: Pubkey, recipient: Pubkey, shares_out: u64, max_assets_in: u64) -> Result<u64> {
+        instructions::swap_assets_for_exact_shares::handler(ctx, referrer, recipient, shares_out, max_assets_in)
     }
 
     pub fn preview_shares_out(ctx: Context<PreviewSharesOut>, assets_in: u64) -> Result<u64> {

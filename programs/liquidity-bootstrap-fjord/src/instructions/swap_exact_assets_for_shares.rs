@@ -14,7 +14,7 @@ pub struct Buy {
 }
 
 #[derive(Accounts)]
-#[instruction(referrer: Pubkey)]
+#[instruction(referrer: Pubkey, recipient: Pubkey)]
 pub struct SwapExactAssetsForShares<'info> {
   #[account(mut)]
   pub depositor: Signer<'info>,
@@ -51,7 +51,7 @@ pub struct SwapExactAssetsForShares<'info> {
     seeds = [
       b"user_stats".as_ref(),
       &pool.key().as_ref(),
-      &depositor.key().as_ref(),
+      &recipient.key().as_ref(),
     ],
     payer = depositor,
     space = 8 + 32 + 32 + 8 + 8 + 1,
@@ -83,9 +83,9 @@ pub struct SwapExactAssetsForShares<'info> {
 pub fn handler(
   ctx: Context<SwapExactAssetsForShares>,
   referrer: Pubkey,
+  recipient: Pubkey,
   assets_in: u64,
   min_shares_out: u64,
-  recipient: Pubkey,
 ) -> Result<u64> {
   let pool = &mut ctx.accounts.pool;
   let lbp_manager_info = &mut ctx.accounts.lbp_manager_info;
@@ -134,7 +134,7 @@ pub fn handler(
   pool.total_purchased = total_purchased_after;
   buyer_stats.purchased += shares_out;
 
-  if recipient != Pubkey::default() && lbp_manager_info.referrer_fee > 0 {
+  if referrer != Pubkey::default() && lbp_manager_info.referrer_fee > 0 {
     let assets_referred: u64 = assets_in * lbp_manager_info.referrer_fee;
     pool.total_referred += assets_referred;
     referrer_stats.referred_amount += assets_referred;

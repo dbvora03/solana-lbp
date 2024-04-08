@@ -107,10 +107,6 @@ describe("weight", () => {
         poolId,
         initialShareAmount,
         initialAssetAmount,
-        totalSwapFeesAsset,
-        totalSwapFeesShare,
-        totalPurchased,
-        totalReferred
     ).accounts({
         depositor: creator.publicKey,
         assetMint,

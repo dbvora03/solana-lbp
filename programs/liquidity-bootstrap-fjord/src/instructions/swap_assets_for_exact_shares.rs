@@ -5,7 +5,7 @@ use crate::state::*;
 use crate::utils::*;
 
 #[derive(Accounts)]
-#[instruction(referrer: Pubkey)]
+#[instruction(referrer: Pubkey, recipient: Pubkey)]
 pub struct SwapAssetsForExactShares<'info> {
   #[account(mut)]
   pub depositor: Signer<'info>,
@@ -42,7 +42,7 @@ pub struct SwapAssetsForExactShares<'info> {
     seeds = [
       b"user_stats".as_ref(),
       &pool.key().as_ref(),
-      &depositor.key().as_ref(),
+      &recipient.key().as_ref(),
     ],
     payer = depositor,
     space = 8 + 32 + 32 + 8 + 8 + 1,
@@ -73,9 +73,9 @@ pub struct SwapAssetsForExactShares<'info> {
 pub fn handler (
   ctx: Context<SwapAssetsForExactShares>,
   referrer: Pubkey,
+  recipient: Pubkey,
   shares_out: u64,
   max_assets_in: u64,
-  recipient: Pubkey,
 ) -> Result<u64> {
   // Get the pool and manager
   let pool = &mut ctx.accounts.pool;
@@ -131,7 +131,7 @@ pub fn handler (
   pool.total_purchased = total_purchased_after;
   buyer_stats.purchased += shares_out;
 
-  if recipient != Pubkey::default() && manager.referrer_fee > 0 {
+  if referrer != Pubkey::default() && manager.referrer_fee > 0 {
     let assets_referred: u64 = assets_in * manager.referrer_fee;
     referrer_stats.referred_amount += assets_referred;
   }
