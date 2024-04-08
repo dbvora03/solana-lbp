@@ -5,7 +5,7 @@ use crate::utils::*;
 use crate::state::*;
 
 #[derive(Accounts)]
-#[instruction(referrer: Pubkey, recipient: Pubkey)]
+#[instruction(recipient: Pubkey)]
 pub struct SwapSharesForExactAssets<'info> {
   #[account(mut)]
   pub depositor: Signer<'info>,
@@ -60,9 +60,9 @@ pub struct SwapSharesForExactAssets<'info> {
 
 pub fn handler(
   ctx: Context<SwapSharesForExactAssets>,
+  recipient: Pubkey,
   assets_out: u64,
   max_shares_in: u64,
-  recipient: Pubkey,
 ) -> Result<u64> {
 
   let pool = &mut ctx.accounts.pool;

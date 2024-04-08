@@ -38,7 +38,7 @@ pub struct SwapExactSharesForAssets<'info> {
   pub depositor_assets_account: Account<'info, TokenAccount>,
 
   #[account(
-    init,
+    init_if_needed,
     seeds = [
       b"user_stats".as_ref(),
       &pool.key().as_ref(),
@@ -59,9 +59,9 @@ pub struct SwapExactSharesForAssets<'info> {
 
 pub fn handler(
   ctx: Context<SwapExactSharesForAssets>,
+  recipient: Pubkey,
   shares_in: u64,
   min_assets_out: u64,
-  recipient: Pubkey,
 ) -> Result<u64> {
 
   let pool = &mut ctx.accounts.pool;
@@ -93,34 +93,33 @@ pub fn handler(
     return err!(ErrorCode::MaxAssetsInExceeded);
   }
 
-  // let total_purchased_before = pool.total_purchased;
+  let total_purchased_before = pool.total_purchased;
 
-  // if total_purchased_before >= pool.settings.max_shares_out || total_purchased_before > shares {
-  //   return err!(ErrorCode::MaxSharesExceeded);
-  // }
+  if total_purchased_before >= pool.settings.max_shares_out || total_purchased_before > shares {
+    return err!(ErrorCode::MaxSharesExceeded);
+  }
 
-  // buyer_stats.purchased -= shares_in;
-  // pool.total_purchased = total_purchased_before - shares_in;
+  buyer_stats.purchased -= shares_in;
+  pool.total_purchased = total_purchased_before - shares_in;
 
-  // token::transfer(
-  //   CpiContext::new(
-  //       ctx.accounts.token_program.to_account_info(),
-  //       Transfer {
-  //           from: ctx.accounts.pool_assets_account.to_account_info(),
-  //           to: ctx.accounts.depositor_assets_account.to_account_info(),
-  //           authority: ctx.accounts.depositor.to_account_info(),
-  //       },
-  //   ),
-  //   assets_out,
-  // )?;
+  token::transfer(
+    CpiContext::new(
+        ctx.accounts.token_program.to_account_info(),
+        Transfer {
+            from: ctx.accounts.pool_assets_account.to_account_info(),
+            to: ctx.accounts.depositor_assets_account.to_account_info(),
+            authority: ctx.accounts.depositor.to_account_info(),
+        },
+    ),
+    assets_out,
+  )?;
 
-  // emit!(Sell {
-  //   caller: *ctx.accounts.depositor.to_account_info().key,
-  //   shares: shares_in,
-  //   assets: assets_out,
-  //   swap_fee: swap_fee
-  // });
-  let assets_out = 0;
+  emit!(Sell {
+    caller: *ctx.accounts.depositor.to_account_info().key,
+    shares: shares_in,
+    assets: assets_out,
+    swap_fee: swap_fee
+  });
 
   Ok(assets_out)
 }

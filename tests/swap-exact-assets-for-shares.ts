@@ -7,7 +7,7 @@ import { assert, expect } from "chai";
 import { SYSVAR_RENT_PUBKEY } from "@solana/web3.js";
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
 
-describe.only("swap exact assets for shares", () => {
+describe("swap exact assets for shares", () => {
   // constants
   const SOL = new anchor.BN(1_000_000_000);
   const ONE_DAY = new anchor.BN(86400);
@@ -17,7 +17,7 @@ describe.only("swap exact assets for shares", () => {
   const defaultInitialShareAmount = SOL.mul(new anchor.BN(1000));
   const defaultInitialAssetAmount = SOL.mul(new anchor.BN(1000));
 
-  const managerId = new anchor.BN(4);
+  const managerId = new anchor.BN(3);
 
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env();
