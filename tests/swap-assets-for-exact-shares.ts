@@ -252,7 +252,6 @@ describe("swap assets for exact shares", () => {
       lbpManagerInfo: lbpManagerPda,
     })
     .view();
-    console.log(maxAssetsIn.toString());
 
     let swapFees = await getSwapFees();
     swapFees = maxAssetsIn.mul(swapFees);
@@ -284,8 +283,6 @@ describe("swap assets for exact shares", () => {
     if (buyEvent) {
       const assetsIn = buyEvent.assets;
       const sharesOut = buyEvent.shares;
-      console.log('assetsIn', assetsIn.toString());
-      console.log('sharesOut', sharesOut.toString());
 
       const poolAssetAmount = (await provider.connection.getTokenAccountBalance(poolAssetKp.publicKey)).value.amount;
       assert.ok(poolAssetAmount == new anchor.BN(assetsIn).add(defaultInitialAssetAmount).toString(), "assetsIn");
@@ -368,13 +365,10 @@ describe("swap assets for exact shares", () => {
       lbpManagerInfo: lbpManagerPda,
     })
     .view();
-    console.log('maxAssetsIn2 from preview', maxAssetsIn2.toString());
 
     let swapFees2 = await getSwapFees();
     swapFees2 = maxAssetsIn2.mul(swapFees2);
     maxAssetsIn2 = maxAssetsIn2.add(swapFees2);
-
-    console.log('maxAssetsIn2', maxAssetsIn2.toString());
 
     await program.methods.swapAssetsForExactShares(
       alice.publicKey,
@@ -398,7 +392,6 @@ describe("swap assets for exact shares", () => {
     if (buyEvent) {
       const assetsIn2 = buyEvent.assets;
       const sharesOut2 = buyEvent.shares;
-      console.log("here", assetsIn2.toString(), sharesOut2.toString());
 
       const poolAssetAmount = (await provider.connection.getTokenAccountBalance(poolAssetKp.publicKey)).value.amount;
       assert.ok(poolAssetAmount == new anchor.BN(assetsIn1).add(defaultInitialAssetAmount).add(assetsIn2).toString(), "assetsIn");

@@ -41,19 +41,13 @@ pub fn compute_reserves_and_weights(
   if unix_timestamp as i128 > pool.settings.sale_start as i128 {
     seconds_elapsed = (unix_timestamp as i128 - pool.settings.sale_start as i128) as u64;
   }
-
-  msg!("interpolatioin: {} {} {} {}", pool.settings.weight_start, pool.settings.weight_end, seconds_elapsed, total_seconds);
   let asset_weight: u64 = linear_interpolation(
     pool.settings.weight_start,
     pool.settings.weight_end,
     seconds_elapsed,
     total_seconds
   );
-
   let share_weight: u64 = 1_000_000_000 - asset_weight;
-
-  msg!("asset_reserve: {} share_reserve: {} asset_weight: {} share_weight: {}", asset_reserve, share_reserve, asset_weight, share_weight);
-
   return (asset_reserve, share_reserve, asset_weight, share_weight);
 }
 
@@ -73,7 +67,7 @@ pub fn scale_token_before(
   token: Pubkey,
   amount: u64
 ) -> u64 {
-  // TODO: hardcode now, figure out later
+  // TODO: hardcode now
   let decimals: u32 = 6;
   let base_decimals: u32 = 9;
   let mut scaled_amount: u64 = amount;
@@ -91,7 +85,7 @@ pub fn scale_token_after(
   token: Pubkey,
   amount: u64
 ) -> u64 {
-  // TODO: hardcode now, figure out later
+  // TODO: hardcode now
   let decimals: u32 = 6;
   let base_decimals: u32 = 9;
   let mut scaled_amount: u64 = amount;
@@ -110,11 +104,7 @@ pub fn get_amount_in(amount_out: f64, reserve_in: f64, reserve_out: f64, weight_
   if amount_out > (reserve_out  * MAX_PERCENTAGE_OUT) {
     return err!(ErrorCode::AmountOutTooLarge);
   }
-  // TODO: check if this can be a problem, u32 required for rust pow
   let div_result = weight_out / weight_in;
-  msg!("reserve_in: {} reserve_out: {} div_result: {}, amount out: {}", reserve_in, reserve_out, div_result, amount_out);
-  msg!("(reserve_out / (reserve_out - amount_out) {}", (reserve_out / (reserve_out - amount_out)));
-  msg!("((reserve_out / (reserve_out - amount_out)).powf(div_result) - 1.0): {}", ((reserve_out / (reserve_out - amount_out)).powf(div_result) - 1.0));
   let res: f64 = reserve_in * ((reserve_out / (reserve_out - amount_out)).powf(div_result) - 1.0);
   Ok(res as u64)
 }
@@ -130,13 +120,9 @@ pub fn get_amount_out(amount_in: f64, reserve_in: f64, reserve_out: f64, weight_
 }
 
 pub fn preview_assets_in(pool: &Pool, shares_out: u64, assets:u64, shares: u64) -> Result<u64> {
-  msg!("shares_out: {} assets: {} shares: {}", shares_out, assets/ SOL as u64, shares /  SOL as u64);
   let (asset_reserve, share_reserve, asset_weight, share_weight) = compute_reserves_and_weights(&pool, assets, shares);
-  msg!("asset_reserve: {} share_reserve: {} asset_weight: {} share_weight: {}", asset_reserve /  SOL as u64, share_reserve/  SOL as u64, asset_weight, share_weight);
   let (asset_reserve_scaled, share_reserve_scaled) = scaled_reserves(pool, asset_reserve, share_reserve);
-  msg!("asset_reserve_scaled: {} share_reserve_scaled: {}", asset_reserve_scaled/  SOL as u64, share_reserve_scaled/  SOL as u64);
   let shares_out_scaled = scale_token_before(pool.settings.share, shares_out);
-  msg!("shares_out_scaled: {}", shares_out_scaled);
   let assets_in_result = get_amount_in(
     shares_out_scaled as f64, 
     asset_reserve_scaled as f64, 
@@ -148,16 +134,11 @@ pub fn preview_assets_in(pool: &Pool, shares_out: u64, assets:u64, shares: u64) 
     return Err(assets_in_result.unwrap_err());
   }
   let mut assets_in = assets_in_result.unwrap();
-  msg!("assets_in: {}", assets_in);
-
-  msg!("pool.settings.max_share_price: {}", pool.settings.max_share_price);
-  msg!("assets_in / shares_out_scaled: {}", assets_in / shares_out_scaled);
   let max_share_price = pool.settings.max_share_price;
   if assets_in / shares_out_scaled > max_share_price {
     assets_in = shares_out_scaled / max_share_price;
   }
   assets_in = scale_token_after(pool.settings.asset, assets_in);
-  msg!("assets_in after scale {}", assets_in);
   Ok(assets_in)
 }
 
@@ -176,7 +157,6 @@ pub fn preview_shares_out(pool: &Pool, assets_in: u64, assets: u64, shares: u64)
     return Err(shares_out_result.unwrap_err());
   }
   let mut shares_out = shares_out_result.unwrap();
-  msg!("assets_in_scaled: {} shares_out: {} max_share_price {}", assets_in_scaled, shares_out, pool.settings.max_share_price);
   if assets_in_scaled / shares_out > pool.settings.max_share_price {
     shares_out = assets_in_scaled * pool.settings.max_share_price;
   }
