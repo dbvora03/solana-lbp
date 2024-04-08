@@ -126,7 +126,6 @@ pub fn get_amount_out(amount_in: f64, reserve_in: f64, reserve_out: f64, weight_
   }
   let div_result = weight_in / weight_out;
   let res: f64 = reserve_out * (1.0 - (reserve_in / (reserve_in + amount_in)).powf(div_result));
-  let res = 0;
   Ok(res as u64)
 }
 
@@ -177,6 +176,7 @@ pub fn preview_shares_out(pool: &Pool, assets_in: u64, assets: u64, shares: u64)
     return Err(shares_out_result.unwrap_err());
   }
   let mut shares_out = shares_out_result.unwrap();
+  msg!("assets_in_scaled: {} shares_out: {} max_share_price {}", assets_in_scaled, shares_out, pool.settings.max_share_price);
   if assets_in_scaled / shares_out > pool.settings.max_share_price {
     shares_out = assets_in_scaled * pool.settings.max_share_price;
   }

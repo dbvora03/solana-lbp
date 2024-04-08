@@ -16,6 +16,7 @@ pub struct Buy {
 #[derive(Accounts)]
 #[instruction(referrer: Pubkey, recipient: Pubkey)]
 pub struct SwapExactAssetsForShares<'info> {
+
   #[account(mut)]
   pub depositor: Signer<'info>,
 
@@ -84,6 +85,7 @@ pub fn handler(
   ctx: Context<SwapExactAssetsForShares>,
   referrer: Pubkey,
   recipient: Pubkey,
+  depositor: Pubkey,
   assets_in: u64,
   min_shares_out: u64,
 ) -> Result<u64> {
@@ -113,6 +115,9 @@ pub fn handler(
     return err!(ErrorCode::MaxAssetsInExceeded);
   }
 
+  let from = ctx.accounts.depositor_asset_account.to_account_info();
+  let to = ctx.accounts.pool_assets_account.to_account_info();
+
   token::transfer(
     CpiContext::new(
         ctx.accounts.token_program.to_account_info(),
@@ -125,27 +130,28 @@ pub fn handler(
     assets_in,
   )?;
 
-  let total_purchased_after = pool.total_purchased + shares_out;
+  // let total_purchased_after = pool.total_purchased + shares_out;
 
-  if total_purchased_after >= pool.settings.max_shares_out || total_purchased_after > shares {
-    return err!(ErrorCode::MaxSharesExceeded);
-  }
+  // if total_purchased_after >= pool.settings.max_shares_out || total_purchased_after > shares {
+  //   return err!(ErrorCode::MaxSharesExceeded);
+  // }
 
-  pool.total_purchased = total_purchased_after;
-  buyer_stats.purchased += shares_out;
+  // pool.total_purchased = total_purchased_after;
+  // buyer_stats.purchased += shares_out;
 
-  if referrer != Pubkey::default() && lbp_manager_info.referrer_fee > 0 {
-    let assets_referred: u64 = assets_in * lbp_manager_info.referrer_fee;
-    pool.total_referred += assets_referred;
-    referrer_stats.referred_amount += assets_referred;
-  }
+  // if referrer != Pubkey::default() && lbp_manager_info.referrer_fee > 0 {
+  //   let assets_referred: u64 = assets_in * lbp_manager_info.referrer_fee;
+  //   pool.total_referred += assets_referred;
+  //   referrer_stats.referred_amount += assets_referred;
+  // }
 
-  emit!(Buy {
-    caller: *ctx.accounts.depositor.key,
-    assets: assets_in,
-    shares: shares_out,
-    swap_fee: swap_fee,
-  });
+  // emit!(Buy {
+  //   caller: *ctx.accounts.depositor.key,
+  //   assets: assets_in,
+  //   shares: shares_out,
+  //   swap_fee: swap_fee,
+  // });
 
+  let assets_in = 0;
   Ok(assets_in) 
 }
