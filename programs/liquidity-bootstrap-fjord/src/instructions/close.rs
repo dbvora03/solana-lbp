@@ -101,7 +101,7 @@ pub fn handler(ctx: Context<Close>) -> Result<()> {
               authority: ctx.accounts.signer.to_account_info(),
           },
       ),
-      platform_fees + pool.total_swap_fees_asset,
+      platform_fees + 2 * pool.total_swap_fees_asset,
     )?;
 
     token::transfer(
@@ -113,11 +113,35 @@ pub fn handler(ctx: Context<Close>) -> Result<()> {
               authority: ctx.accounts.signer.to_account_info(),
           },
       ),
-      pool.total_swap_fees_share
+      2 * pool.total_swap_fees_share // This is covering the overlap 
     )?;
 
-    // TODO: Do the distribute fee function for treasury
+    // This can be split up to use the percentage based allocation
+    // AKA the for loop in distributeFee
+    token::transfer(
+      CpiContext::new(
+          ctx.accounts.token_program.to_account_info(),
+          Transfer {  
+              from: ctx.accounts.pool_assets_account.to_account_info(),
+              to: ctx.accounts.fee_asset_rec_account.to_account_info(),
+              authority: ctx.accounts.signer.to_account_info(),
+          },
+      ),
+      platform_fees,
+    )?;
 
+
+    token::transfer(
+      CpiContext::new(
+          ctx.accounts.token_program.to_account_info(),
+          Transfer {  
+              from: ctx.accounts.pool_assets_account.to_account_info(),
+              to: ctx.accounts.fee_asset_rec_account.to_account_info(),
+              authority: ctx.accounts.signer.to_account_info(),
+          },
+      ),
+      platform_fees,
+    )?;
 
     token::transfer(
       CpiContext::new(
