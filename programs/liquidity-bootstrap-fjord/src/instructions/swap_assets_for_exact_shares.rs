@@ -92,6 +92,7 @@ pub fn handler (
     return err!(ErrorCode::MathError);
   }
   let mut assets_in = assets_in_result.unwrap();
+  
   let swap_fees: u64 = assets_in * manager.swap_fee;
   assets_in += swap_fees;
   pool.total_swap_fees_asset += swap_fees;
@@ -132,12 +133,12 @@ pub fn handler (
     referrer_stats.referred_amount += assets_referred;
   }
 
-  // emit!(Buy {
-  //   caller: *ctx.accounts.depositor.key,
-  //   assets: assets_in,
-  //   shares: shares_out,
-  //   swap_fee: swap_fees,
-  // });
+  emit!(Buy {
+    caller: *ctx.accounts.depositor.key,
+    assets: assets_in,
+    shares: shares_out,
+    swap_fee: swap_fees,
+  });
 
   Ok(assets_in)
 }
