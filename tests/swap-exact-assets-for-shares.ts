@@ -39,11 +39,6 @@ describe.only("swap exact assets for shares", () => {
   let buyerStatsPda;
   let referrerStatsPda;
 
-  const totalSwapFeesAsset = new anchor.BN(0);
-  const totalSwapFeesShare = new anchor.BN(0);
-  const totalPurchased = new anchor.BN(0);
-  const totalReferred = new anchor.BN(0);
-
   const fund = async (pubkey) => {
     const airdropSignature = await provider.connection.requestAirdrop(
       pubkey,
@@ -131,15 +126,6 @@ describe.only("swap exact assets for shares", () => {
         anchor.utils.bytes.utf8.encode("user_stats"),
         poolAccountAddress.toBuffer(),
         depositor.publicKey.toBuffer(),  
-      ],
-      program.programId
-    );
-
-    [referrerStatsPda] = await anchor.web3.PublicKey.findProgramAddressSync(
-      [
-        anchor.utils.bytes.utf8.encode("user_stats"),
-        poolAccountAddress.toBuffer(),
-        bob.publicKey.toBuffer(),  
       ],
       program.programId
     );
@@ -276,8 +262,6 @@ describe.only("swap exact assets for shares", () => {
     console.log("here", depositor.publicKey.toString());
 
     await program.methods.swapExactAssetsForShares(
-        bob.publicKey,
-        depositor.publicKey,
         depositor.publicKey,
         assetsIn,
         minSharesOut,
@@ -288,7 +272,6 @@ describe.only("swap exact assets for shares", () => {
         poolSharesAccount: poolShareKp.publicKey,
         depositorAssetAccount: depositorAssetTokenAccount,
         buyerStats: buyerStatsPda,
-        referrerStats: referrerStatsPda,
         lbpManagerInfo: lbpManagerPda,
         tokenProgram: splToken.TOKEN_PROGRAM_ID,
         rent: SYSVAR_RENT_PUBKEY,
@@ -297,134 +280,130 @@ describe.only("swap exact assets for shares", () => {
     .signers([depositor])
     .rpc();
 
-    // if (buyEvent) {
-    //   const assetsIn = buyEvent.assets;
-    //   const sharesOut = buyEvent.shares;
+    if (buyEvent) {
+      const assetsIn = buyEvent.assets;
+      const sharesOut = buyEvent.shares;
 
-    //   const poolAssetAmount = (await provider.connection.getTokenAccountBalance(poolAssetKp.publicKey)).value.amount;
-    //   assert.ok(poolAssetAmount == new anchor.BN(assetsIn).add(defaultInitialAssetAmount).toString(), "assetsIn");
-    //   assert.ok(sharesOut == minSharesOut.toString(), "sharesOut"); 
+      const poolAssetAmount = (await provider.connection.getTokenAccountBalance(poolAssetKp.publicKey)).value.amount;
+      assert.ok(poolAssetAmount == new anchor.BN(assetsIn).add(defaultInitialAssetAmount).toString(), "assetsIn");
+      assert.ok(sharesOut == minSharesOut.toString(), "sharesOut"); 
 
-    //   const lbpAccount = await program.account.pool.fetch(poolAccountAddress);
-    //   assert.ok(lbpAccount.totalPurchased.toString() == sharesOut.toString(), "totalPurchased");
+      const lbpAccount = await program.account.pool.fetch(poolAccountAddress);
+      assert.ok(lbpAccount.totalPurchased.toString() == sharesOut.toString(), "totalPurchased");
 
-    //   const buyerStats = await program.account.userStats.fetch(buyerStatsPda);
-    //   assert.ok(buyerStats.purchased.toString() == sharesOut.toString(), "purchased");
-    // } else {
-    //   expect.fail('Buy event not emitted');
-    // }
+      const buyerStats = await program.account.userStats.fetch(buyerStatsPda);
+      assert.ok(buyerStats.purchased.toString() == sharesOut.toString(), "purchased");
+    } else {
+      expect.fail('Buy event not emitted');
+    }
 
     program.removeEventListener(id);
   });
 
   it("test second swap", async () => {
-    // const poolId = new anchor.BN(302);
-    // const poolAccountAddress = await get_pool_account_address(poolId);
-    // const poolSettings = await getDefaultPoolSettings();
-    // await create_pool(poolSettings, poolId);
-    // await setUp(poolAccountAddress);
+    const poolId = new anchor.BN(302);
+    const poolAccountAddress = await get_pool_account_address(poolId);
+    const poolSettings = await getDefaultPoolSettings();
+    await create_pool(poolSettings, poolId);
+    await setUp(poolAccountAddress);
 
-    // const assetsIn = SOL;
-    // let minSharesOut = await program.methods.previewSharesOut(
-    //     assetsIn
-    // )
-    // .accounts({
-    //     pool: poolAccountAddress,
-    //     poolAssetsAccount: poolAssetKp.publicKey,
-    //     poolSharesAccount: poolShareKp.publicKey,
-    //     lbpManagerInfo: lbpManagerPda,
-    // })
-    // .view();
+    const assetsIn = SOL;
+    let minSharesOut = await program.methods.previewSharesOut(
+        assetsIn
+    )
+    .accounts({
+        pool: poolAccountAddress,
+        poolAssetsAccount: poolAssetKp.publicKey,
+        poolSharesAccount: poolShareKp.publicKey,
+        lbpManagerInfo: lbpManagerPda,
+    })
+    .view();
 
-    // let buyEvent = null;
-    // const id = program.addEventListener('Buy', (event, slot) => {
-    //   buyEvent = event;
-    // });
+    let buyEvent = null;
+    const id = program.addEventListener('Buy', (event, slot) => {
+      buyEvent = event;
+    });
 
-    // await program.methods.swapExactAssetsForShares(
-    //     bob.publicKey,
-    //     depositor.publicKey,
-    //     assetsIn,
-    //     minSharesOut,
-    // ).accounts({
-    //     depositor: depositor.publicKey,
-    //     pool: poolAccountAddress,
-    //     poolAssetsAccount: poolAssetKp.publicKey,
-    //     poolSharesAccount: poolShareKp.publicKey,
-    //     depositorAssetAccount: depositorAssetTokenAccount,
-    //     buyerStats: buyerStatsPda,
-    //     referrerStats: referrerStatsPda,
-    //     lbpManagerInfo: lbpManagerPda,
-    //     tokenProgram: splToken.TOKEN_PROGRAM_ID,
-    //     rent: SYSVAR_RENT_PUBKEY,
-    //     systemProgram: anchor.web3.SystemProgram.programId,
-    // })
-    // .signers([depositor])
-    // .rpc();
+    await program.methods.swapExactAssetsForShares(
+        depositor.publicKey,
+        assetsIn,
+        minSharesOut,
+    ).accounts({
+        depositor: depositor.publicKey,
+        pool: poolAccountAddress,
+        poolAssetsAccount: poolAssetKp.publicKey,
+        poolSharesAccount: poolShareKp.publicKey,
+        depositorAssetAccount: depositorAssetTokenAccount,
+        buyerStats: buyerStatsPda,
+        lbpManagerInfo: lbpManagerPda,
+        tokenProgram: splToken.TOKEN_PROGRAM_ID,
+        rent: SYSVAR_RENT_PUBKEY,
+        systemProgram: anchor.web3.SystemProgram.programId,
+    })
+    .signers([depositor])
+    .rpc();
 
-    // let assetsIn1;
-    // let sharesOut1;
+    let assetsIn1;
+    let sharesOut1;
 
-    // if (buyEvent) {
-    //   assetsIn1 = buyEvent.assets;
-    //   sharesOut1 = buyEvent.shares;
-    // } else {
-    //   expect.fail('Buy event not emitted');
-    // }
+    if (buyEvent) {
+      assetsIn1 = buyEvent.assets;
+      sharesOut1 = buyEvent.shares;
+    } else {
+      expect.fail('Buy event not emitted');
+    }
 
-    // let minSharesOut2 = await program.methods.previewSharesOut(
-    //     assetsIn
-    // )
-    //   .accounts({
-    //     pool: poolAccountAddress,
-    //     poolAssetsAccount: poolAssetKp.publicKey,
-    //     poolSharesAccount: poolShareKp.publicKey,
-    //     lbpManagerInfo: lbpManagerPda,
-    //   })
-    //   .view();
+    let minSharesOut2 = await program.methods.previewSharesOut(
+        assetsIn
+    )
+      .accounts({
+        pool: poolAccountAddress,
+        poolAssetsAccount: poolAssetKp.publicKey,
+        poolSharesAccount: poolShareKp.publicKey,
+        lbpManagerInfo: lbpManagerPda,
+      })
+      .view();
 
-    //   console.log("minSharesOut2", minSharesOut2.toString());
+      console.log("minSharesOut2", minSharesOut2.toString());
   
-    //   await program.methods.swapExactAssetsForShares(
-    //     bob.publicKey,
-    //     assetsIn,
-    //     minSharesOut2,
-    //     depositor.publicKey
-    //   ).accounts({
-    //     depositor: depositor.publicKey,
-    //     pool: poolAccountAddress,
-    //     poolAssetsAccount: poolAssetKp.publicKey,
-    //     poolSharesAccount: poolShareKp.publicKey,
-    //     depositorAssetAccount: depositorAssetTokenAccount,
-    //     buyerStats: buyerStatsPda,
-    //     referrerStats: referrerStatsPda,
-    //     lbpManagerInfo: lbpManagerPda,
-    //     tokenProgram: splToken.TOKEN_PROGRAM_ID,
-    //     rent: SYSVAR_RENT_PUBKEY,
-    //     systemProgram: anchor.web3.SystemProgram.programId,
-    //   })
-    //   .signers([depositor])
-    //   .rpc();
+      await program.methods.swapExactAssetsForShares(
+        depositor.publicKey,
+        assetsIn,
+        minSharesOut2,
+      ).accounts({
+        depositor: depositor.publicKey,
+        pool: poolAccountAddress,
+        poolAssetsAccount: poolAssetKp.publicKey,
+        poolSharesAccount: poolShareKp.publicKey,
+        depositorAssetAccount: depositorAssetTokenAccount,
+        buyerStats: buyerStatsPda,
+        lbpManagerInfo: lbpManagerPda,
+        tokenProgram: splToken.TOKEN_PROGRAM_ID,
+        rent: SYSVAR_RENT_PUBKEY,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([depositor])
+      .rpc();
   
-    //   if (buyEvent) {
-    //     const assetsIn2 = buyEvent.assets;
-    //     const sharesOut2 = buyEvent.shares;
-    //     console.log("here", assetsIn2.toString(), sharesOut2.toString());
+      if (buyEvent) {
+        const assetsIn2 = buyEvent.assets;
+        const sharesOut2 = buyEvent.shares;
+        console.log("here", assetsIn2.toString(), sharesOut2.toString());
   
-    //     const poolAssetAmount = (await provider.connection.getTokenAccountBalance(poolAssetKp.publicKey)).value.amount;
-    //     assert.ok(poolAssetAmount == new anchor.BN(assetsIn1).add(defaultInitialAssetAmount).add(assetsIn2).toString(), "assetsIn");
-    //     assert.ok(minSharesOut2.toString() == sharesOut2, "sharesOut");
+        const poolAssetAmount = (await provider.connection.getTokenAccountBalance(poolAssetKp.publicKey)).value.amount;
+        assert.ok(poolAssetAmount == new anchor.BN(assetsIn1).add(defaultInitialAssetAmount).add(assetsIn2).toString(), "assetsIn");
+        assert.ok(minSharesOut2.toString() == sharesOut2, "sharesOut");
   
-    //     const lbpAccount = await program.account.pool.fetch(poolAccountAddress);
-    //     assert.ok(lbpAccount.totalPurchased.toString() == sharesOut1.add(sharesOut2).toString(), "totalPurchased");
+        const lbpAccount = await program.account.pool.fetch(poolAccountAddress);
+        assert.ok(lbpAccount.totalPurchased.toString() == sharesOut1.add(sharesOut2).toString(), "totalPurchased");
   
-    //     const buyerStats = await program.account.userStats.fetch(buyerStatsPda);
-    //     assert.ok(buyerStats.purchased.toString() == sharesOut1.add(sharesOut2).toString(), "purchased");
-    //   } else {
-    //     expect.fail('Buy event not emitted');
-    //   }
+        const buyerStats = await program.account.userStats.fetch(buyerStatsPda);
+        assert.ok(buyerStats.purchased.toString() == sharesOut1.add(sharesOut2).toString(), "purchased");
+      } else {
+        expect.fail('Buy event not emitted');
+      }
   
-    // program.removeEventListener(id);
+    program.removeEventListener(id);
 
   });
   

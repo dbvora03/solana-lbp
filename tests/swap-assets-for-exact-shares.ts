@@ -33,11 +33,7 @@ describe("swap", () => {
   let creatorAssetTokenAccount;
   let creatorShareTokenAccount;
   let buyerStatsPda;
-  let referrerStatsPda;
-  const totalSwapFeesAsset = new anchor.BN(0);
-  const totalSwapFeesShare = new anchor.BN(0);
-  const totalPurchased = new anchor.BN(0);
-  const totalReferred = new anchor.BN(0);
+
   const fund = async (pubkey) => {
     const airdropSignature = await provider.connection.requestAirdrop(
       pubkey,
@@ -50,6 +46,7 @@ describe("swap", () => {
       signature: airdropSignature,
     });
   };
+
   const getDefaultPoolSettings = async () => {
     let now = new anchor.BN(await provider.connection.getBlockTime(await provider.connection.getSlot()))
     const weightStart = SOL.div(new anchor.BN(2));
@@ -83,6 +80,7 @@ describe("swap", () => {
     };
     return poolSettings;
   }
+
   const create_pool = async (
     poolSettings, 
     poolId,
@@ -112,24 +110,18 @@ describe("swap", () => {
     .signers([creator, poolAssetKp, poolShareKp])
     .rpc();
   }
+
   const setUp = async (poolAccountAddress) => {
     [buyerStatsPda] = await anchor.web3.PublicKey.findProgramAddressSync(
       [
         anchor.utils.bytes.utf8.encode("user_stats"),
-        poolAccountAddress.toBuffer(),
-        alice.publicKey.toBuffer(),  
-      ],
-      program.programId
-    );
-    [referrerStatsPda] = await anchor.web3.PublicKey.findProgramAddressSync(
-      [
-        anchor.utils.bytes.utf8.encode("user_stats"),
-        poolAccountAddress.toBuffer(),
-        bob.publicKey.toBuffer(),  
+        poolAccountAddress.toBuffer(), 
+        alice.publicKey.toBuffer(),
       ],
       program.programId
     );
   }
+
   const get_pool_account_address = async (poolId) => {
     let [pool_account_address] = anchor.web3.PublicKey.findProgramAddressSync(
         [
@@ -143,6 +135,7 @@ describe("swap", () => {
     );
     return pool_account_address;
   }
+
   before(async () => {
     await fund(creator.publicKey);
     await fund(alice.publicKey);
@@ -237,11 +230,13 @@ describe("swap", () => {
     poolAssetKp = anchor.web3.Keypair.generate();
     poolShareKp = anchor.web3.Keypair.generate();
   });
+
   const getSwapFees = async () => {
     const lbpManagerInfoAccount = await program.account.lbpManagerInfo.fetch(lbpManagerPda);
     return lbpManagerInfoAccount.swapFee;
   }
-  it.only("test swap assets for exact shares 5", async () => {
+
+  it("test swap assets for exact shares 5", async () => {
     const poolId = new anchor.BN(201);
     const poolAccountAddress = await get_pool_account_address(poolId);
     const poolSettings = await getDefaultPoolSettings();
@@ -270,10 +265,9 @@ describe("swap", () => {
     });
 
     await program.methods.swapAssetsForExactShares(
-      bob.publicKey,
+      alice.publicKey,
       sharesOut,
       maxAssetsIn,
-      alice.publicKey
     ).accounts({
       depositor: alice.publicKey,
       pool: poolAccountAddress,
@@ -281,7 +275,6 @@ describe("swap", () => {
       poolSharesAccount: poolShareKp.publicKey,
       depositorAssetsAccount: depositorAssetTokenAccount,
       buyerStats: buyerStatsPda,
-      referrerStats: referrerStatsPda,
       lbpManagerInfo: lbpManagerPda,
       tokenProgram: splToken.TOKEN_PROGRAM_ID,
       rent: SYSVAR_RENT_PUBKEY,
@@ -302,7 +295,6 @@ describe("swap", () => {
       assert.ok(lbpAccount.totalPurchased.toString() == sharesOut.toString(), "totalPurchased");
       const buyerStats = await program.account.userStats.fetch(buyerStatsPda);
       assert.ok(buyerStats.purchased.toString() == sharesOut.toString(), "purchased");
-      // TODO: check referrer stats
     } else {
       expect.fail('Buy event not emitted');
     }
@@ -339,10 +331,9 @@ describe("swap", () => {
     maxAssetsIn = maxAssetsIn.add(swapFees);
 
     await program.methods.swapAssetsForExactShares(
-      bob.publicKey,
+      alice.publicKey,
       sharesOut,
       maxAssetsIn,
-      alice.publicKey
     ).accounts({
       depositor: alice.publicKey,
       pool: poolAccountAddress,
@@ -350,7 +341,6 @@ describe("swap", () => {
       poolSharesAccount: poolShareKp.publicKey,
       depositorAssetsAccount: depositorAssetTokenAccount,
       buyerStats: buyerStatsPda,
-      referrerStats: referrerStatsPda,
       lbpManagerInfo: lbpManagerPda,
       tokenProgram: splToken.TOKEN_PROGRAM_ID,
       rent: SYSVAR_RENT_PUBKEY,
@@ -388,10 +378,9 @@ describe("swap", () => {
     console.log('maxAssetsIn2', maxAssetsIn2.toString());
 
     await program.methods.swapAssetsForExactShares(
-      bob.publicKey,
+      alice.publicKey,
       sharesOut,
       maxAssetsIn2,
-      alice.publicKey
     ).accounts({
       depositor: alice.publicKey,
       pool: poolAccountAddress,
@@ -399,7 +388,6 @@ describe("swap", () => {
       poolSharesAccount: poolShareKp.publicKey,
       depositorAssetsAccount: depositorAssetTokenAccount,
       buyerStats: buyerStatsPda,
-      referrerStats: referrerStatsPda,
       lbpManagerInfo: lbpManagerPda,
       tokenProgram: splToken.TOKEN_PROGRAM_ID,
       rent: SYSVAR_RENT_PUBKEY,
