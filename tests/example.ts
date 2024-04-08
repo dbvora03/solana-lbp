@@ -67,6 +67,25 @@ const createLBPManager = async ({
   return lbpManagerPda;
 };
 
+const getLBPManager = async (
+  program: anchor.Program<LiquidityBootstrapFjord>,
+  id: number
+) => {
+  const [lbpManagerPda] = anchor.web3.PublicKey.findProgramAddressSync(
+    [
+      anchor.utils.bytes.utf8.encode("lbp-manager"),
+      new anchor.BN(id).toArrayLike(Buffer, "le", 8),
+    ],
+    program.programId
+  );
+
+  const lbpManagerInfoAccount = await program.account.lbpManagerInfo.fetch(
+    lbpManagerPda
+  );
+
+  return lbpManagerInfoAccount;
+};
+
 const setPlatformFee = async ({
   program,
   signer,
@@ -143,6 +162,30 @@ const setFeeRecipient = async ({
 }) => {
   return await program.methods
     .setFeeRecipient(feeRecipient)
+    .accounts({
+      authority: signer.publicKey,
+      lbpManagerInfo: lbpManagerPda,
+    })
+    .signers([signer])
+    .rpc();
+};
+
+const transferOwnership = async ({
+  program,
+  signer,
+  newOwner,
+  lbpManagerId,
+}) => {
+  const [lbpManagerPda] = anchor.web3.PublicKey.findProgramAddressSync(
+    [
+      anchor.utils.bytes.utf8.encode("lbp-manager"),
+      new anchor.BN(lbpManagerId).toArrayLike(Buffer, "le", 8),
+    ],
+    program.programId
+  );
+
+  return await program.methods
+    .transferOwnership(newOwner)
     .accounts({
       authority: signer.publicKey,
       lbpManagerInfo: lbpManagerPda,
@@ -233,6 +276,7 @@ const createPool = async ({
       pool: pool_account_address,
       tokenProgram: splToken.TOKEN_PROGRAM_ID,
       rent: SYSVAR_RENT_PUBKEY,
+      systemProgram: anchor.web3.SystemProgram.programId,
     })
     .signers([depositor, poolAssetKp, poolShareKp])
     .rpc();
@@ -240,13 +284,117 @@ const createPool = async ({
   return pool_account_address;
 };
 
-// const swapAssetsForExactShares = async ({program, referrer, sharesOut, maxAssetsIn, recipient}: {program: anchor.Program<LiquidityBootstrapFjord>, referrer: anchor.web3.PublicKey}) => {
+const getPool = async (
+  program: anchor.Program<LiquidityBootstrapFjord>,
+  lbpManagerId: number,
+  poolId: number,
+  assetMint: anchor.web3.PublicKey,
+  shareMint: anchor.web3.PublicKey
+) => {
+  const [lbpManagerPda] = anchor.web3.PublicKey.findProgramAddressSync(
+    [
+      anchor.utils.bytes.utf8.encode("lbp-manager"),
+      new anchor.BN(lbpManagerId).toArrayLike(Buffer, "le", 8),
+    ],
+    program.programId
+  );
 
-//   await program.methods.swapAssetsForExactShares(
-//     referrer,
+  const [poolPda] = anchor.web3.PublicKey.findProgramAddressSync(
+    [
+      anchor.utils.bytes.utf8.encode("pool"),
+      lbpManagerPda.toBuffer(),
+      assetMint.toBuffer(),
+      shareMint.toBuffer(),
+      new anchor.BN(poolId).toArrayLike(Buffer, "le", 8),
+    ],
+    program.programId
+  );
 
-//   )
-// }
+  const poolInfoAccount = await program.account.pool.fetch(poolPda);
+
+  return poolInfoAccount;
+};
+
+const getUserStats = async (
+  program: anchor.Program<LiquidityBootstrapFjord>,
+  poolAddress: anchor.web3.PublicKey,
+  referrer: anchor.web3.PublicKey
+) => {
+  const [userStats] = anchor.web3.PublicKey.findProgramAddressSync(
+    [
+      anchor.utils.bytes.utf8.encode("user_stats"),
+      poolAddress.toBuffer(),
+      referrer.toBuffer(),
+    ],
+    program.programId
+  );
+
+  const userInfo = await program.account.userStats.fetch(userStats);
+  return userInfo;
+};
+
+const swapAssetsForExactShares = async ({
+  program,
+  referrer,
+  recipient,
+  sharesOut,
+  maxAssetsIn,
+
+  depositor,
+  poolPda,
+  lbpManagerPda,
+  poolAssetsAccount,
+  poolSharesAccount,
+  depositorAssetsAccount,
+}: {
+  program: anchor.Program<LiquidityBootstrapFjord>;
+  referrer: anchor.web3.PublicKey;
+  recipient: anchor.web3.PublicKey;
+  sharesOut: anchor.BN;
+  maxAssetsIn: anchor.BN;
+
+  depositor: anchor.web3.Keypair;
+  poolPda: anchor.web3.PublicKey;
+  lbpManagerPda: anchor.web3.PublicKey;
+  poolAssetsAccount: anchor.web3.PublicKey;
+  poolSharesAccount: anchor.web3.PublicKey;
+  depositorAssetsAccount: anchor.web3.PublicKey;
+}) => {
+  let [buyer_stats] = anchor.web3.PublicKey.findProgramAddressSync(
+    [
+      anchor.utils.bytes.utf8.encode("user_stats"),
+      poolPda.toBuffer(),
+      recipient.toBuffer(),
+    ],
+    program.programId
+  );
+
+  let [referrer_stats] = anchor.web3.PublicKey.findProgramAddressSync(
+    [
+      anchor.utils.bytes.utf8.encode("user_stats"),
+      poolPda.toBuffer(),
+      referrer.toBuffer(),
+    ],
+    program.programId
+  );
+
+  return await program.methods
+    .swapAssetsForExactShares(referrer, recipient, sharesOut, maxAssetsIn)
+    .accounts({
+      depositor: depositor.publicKey,
+      pool: poolPda,
+      lbpManagerInfo: lbpManagerPda,
+      poolAssetsAccount: poolAssetsAccount,
+      poolSharesAccount: poolSharesAccount,
+      depositorAssetsAccount: depositorAssetsAccount,
+      buyerStats: buyer_stats,
+      referrerStats: referrer_stats,
+      tokenProgram: splToken.TOKEN_PROGRAM_ID,
+      rent: SYSVAR_RENT_PUBKEY,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    })
+    .signers([depositor]);
+};
 
 describe("lbp-examples", async () => {
   // Code to get Provider
@@ -317,6 +465,9 @@ describe("lbp-examples", async () => {
       swapFee: new anchor.BN(1000),
     });
 
+    // Use this to get info about the LBP Manager
+    const lbpManagerInfo = await getLBPManager(program, 1);
+
     // Set platform fee
     setPlatformFee({
       program,
@@ -346,6 +497,13 @@ describe("lbp-examples", async () => {
       signer: depositor,
       feeRecipient: fee_recipient,
       lbpManagerPda,
+    });
+
+    transferOwnership({
+      program,
+      signer: depositor,
+      newOwner: fee_recipient,
+      lbpManagerId: 1,
     });
 
     // Create a pool
@@ -387,14 +545,31 @@ describe("lbp-examples", async () => {
       poolShareKp,
     });
 
-    // Swap Assets for Exact Shares
-    // await 
+    // Get pool info
+    const pool = await getPool(program, 1, 1, assetMint, shareMint);
 
+    // Swap Assets for Exact Shares
+    const txSAES = await swapAssetsForExactShares({
+      program,
+      referrer: fee_recipient,
+      recipient: fee_recipient,
+      sharesOut: new anchor.BN(1000),
+      maxAssetsIn: new anchor.BN(1000),
+      depositor,
+      poolPda,
+      lbpManagerPda,
+      poolAssetsAccount: poolAssetKp.publicKey,
+      poolSharesAccount: poolShareKp.publicKey,
+      depositorAssetsAccount: depositorAccountAsset.address,
+    });
 
     // Swap Shares for Exact Assets
 
     // Swap Assets for Exact Shares
 
     // Swap Shares for Exact Assets
+
+    // Get User stats
+    const userStats = await getUserStats(program, poolPda, fee_recipient);
   });
 });
