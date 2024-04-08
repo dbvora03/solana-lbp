@@ -94,7 +94,7 @@ pub fn handler (
   let mut assets_in = assets_in_result.unwrap();
   msg!("assets_in from preview: {}", assets_in);
   
-  let swap_fees: u64 = assets_in * manager.swap_fee;
+  let swap_fees: u64 = assets_in * manager.swap_fee / 1_000_000_000;
   assets_in += swap_fees;
   pool.total_swap_fees_asset += swap_fees;
 

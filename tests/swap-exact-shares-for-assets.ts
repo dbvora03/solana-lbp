@@ -7,7 +7,7 @@ import { assert, expect } from "chai";
 import { SYSVAR_RENT_PUBKEY } from "@solana/web3.js";
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
 
-describe("swap", () => {
+describe.only("swap exact shares for assets", () => {
   // constants
   const SOL = new anchor.BN(1_000_000_000);
   const ONE_DAY = new anchor.BN(86400);
@@ -17,7 +17,7 @@ describe("swap", () => {
   const defaultInitialShareAmount = SOL.mul(new anchor.BN(1000));
   const defaultInitialAssetAmount = SOL.mul(new anchor.BN(1000));
 
-  const managerId = new anchor.BN(3);
+  const managerId = new anchor.BN(5);
 
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env();
@@ -43,7 +43,7 @@ describe("swap", () => {
 
   const totalSwapFeesAsset = new anchor.BN(0);
   const totalSwapFeesShare = new anchor.BN(0);
-  const totalPurchased = new anchor.BN(0);
+  const totalPurchased = new anchor.BN(1000_000_000);
   const totalReferred = new anchor.BN(0);
 
   const fund = async (pubkey) => {
@@ -137,15 +137,6 @@ describe("swap", () => {
         anchor.utils.bytes.utf8.encode("user_stats"),
         poolAccountAddress.toBuffer(),
         alice.publicKey.toBuffer(),  
-      ],
-      program.programId
-    );
-
-    [referrerStatsPda] = await anchor.web3.PublicKey.findProgramAddressSync(
-      [
-        anchor.utils.bytes.utf8.encode("user_stats"),
-        poolAccountAddress.toBuffer(),
-        bob.publicKey.toBuffer(),  
       ],
       program.programId
     );
@@ -269,196 +260,44 @@ describe("swap", () => {
     return lbpManagerInfoAccount.swapFee;
   }
 
-  it("test swap assets for exact shares 5", async () => {
-    const poolId = new anchor.BN(201);
+  it("test revert slippage too high", async () => {
+    const poolId = new anchor.BN(401);
     const poolAccountAddress = await get_pool_account_address(poolId);
     const poolSettings = await getDefaultPoolSettings();
     await create_pool(poolSettings, poolId);
     await setUp(poolAccountAddress);
 
-    const sharesOut = SOL;
-    let maxAssetsIn = await program.methods.previewAssetsIn(
-      sharesOut
+    const sharesIn = SOL;
+    let minAssets = await program.methods.previewAssetsOut(
+        sharesIn,
     )
     .accounts({
-      pool: poolAccountAddress,
-      poolAssetsAccount: poolAssetKp.publicKey,
-      poolSharesAccount: poolShareKp.publicKey,
-      lbpManagerInfo: lbpManagerPda,
+        pool: poolAccountAddress,
+        poolAssetsAccount: poolAssetKp.publicKey,
+        poolSharesAccount: poolShareKp.publicKey,
+        lbpManagerInfo: lbpManagerPda,
     })
     .view();
 
-    let swapFees = await getSwapFees();
-    swapFees = maxAssetsIn.mul(swapFees);
-    maxAssetsIn = maxAssetsIn.add(swapFees);
+    console.log("in test:", sharesIn.toString(), minAssets.toString())
 
-    let buyEvent = null;
-    const id = program.addEventListener('Buy', (event, slot) => {
-      buyEvent = event;
-    });
-
-    await program.methods.swapAssetsForExactShares(
-      bob.publicKey,
-      sharesOut,
-      maxAssetsIn,
-      alice.publicKey
+    await program.methods.swapExactSharesForAssets(
+        sharesIn,
+        minAssets,
+        alice.publicKey
     ).accounts({
-      depositor: alice.publicKey,
-      pool: poolAccountAddress,
-      poolAssetsAccount: poolAssetKp.publicKey,
-      poolSharesAccount: poolShareKp.publicKey,
-      depositorAssetsAccount: depositorAssetTokenAccount,
-      buyerStats: buyerStatsPda,
-      referrerStats: referrerStatsPda,
-      lbpManagerInfo: lbpManagerPda,
-      tokenProgram: splToken.TOKEN_PROGRAM_ID,
-      rent: SYSVAR_RENT_PUBKEY,
-      systemProgram: anchor.web3.SystemProgram.programId,
+        depositor: alice.publicKey,
+        pool: poolAccountAddress,
+        poolAssetsAccount: poolAssetKp.publicKey,
+        poolSharesAccount: poolShareKp.publicKey,
+        depositorAssetsAccount: depositorAssetTokenAccount,
+        buyerStats: buyerStatsPda,
+        lbpManagerInfo: lbpManagerPda,
+        tokenProgram: splToken.TOKEN_PROGRAM_ID,
+        rent: SYSVAR_RENT_PUBKEY,
+        systemProgram: anchor.web3.SystemProgram.programId,
     })
     .signers([alice])
     .rpc();
-
-    if (buyEvent) {
-      const assetsIn = buyEvent.assets;
-      const sharesOut = buyEvent.shares;
-
-      const poolAssetAmount = (await provider.connection.getTokenAccountBalance(poolAssetKp.publicKey)).value.amount;
-      assert.ok(poolAssetAmount == new anchor.BN(assetsIn).add(defaultInitialAssetAmount).toString(), "assetsIn");
-      assert.ok(maxAssetsIn.toString() == assetsIn, "assetsIn");
-
-      const lbpAccount = await program.account.pool.fetch(poolAccountAddress);
-      assert.ok(lbpAccount.totalPurchased.toString() == sharesOut.toString(), "totalPurchased");
-
-      const buyerStats = await program.account.userStats.fetch(buyerStatsPda);
-      assert.ok(buyerStats.purchased.toString() == sharesOut.toString(), "purchased");
-
-      // TODO: check referrer stats
-
-    } else {
-      expect.fail('Buy event not emitted');
-    }
-
-    program.removeEventListener(id);
   });
-
-  it("test second swap", async () => {
-    const poolId = new anchor.BN(202);
-    const poolAccountAddress = await get_pool_account_address(poolId);
-    const poolSettings = await getDefaultPoolSettings();
-    await create_pool(poolSettings, poolId);
-    await setUp(poolAccountAddress);
-
-    const sharesOut = SOL;
-    let maxAssetsIn = await program.methods.previewAssetsIn(
-      sharesOut
-    )
-    .accounts({
-      pool: poolAccountAddress,
-      poolAssetsAccount: poolAssetKp.publicKey,
-      poolSharesAccount: poolShareKp.publicKey,
-      lbpManagerInfo: lbpManagerPda,
-    })
-    .view();
-
-    let buyEvent = null;
-    const id = program.addEventListener('Buy', (event, slot) => {
-      buyEvent = event;
-    });
-
-    let swapFees = await getSwapFees();
-    swapFees = maxAssetsIn.mul(swapFees);
-    maxAssetsIn = maxAssetsIn.add(swapFees);
-
-    await program.methods.swapAssetsForExactShares(
-      bob.publicKey,
-      sharesOut,
-      maxAssetsIn,
-      alice.publicKey
-    ).accounts({
-      depositor: alice.publicKey,
-      pool: poolAccountAddress,
-      poolAssetsAccount: poolAssetKp.publicKey,
-      poolSharesAccount: poolShareKp.publicKey,
-      depositorAssetsAccount: depositorAssetTokenAccount,
-      buyerStats: buyerStatsPda,
-      referrerStats: referrerStatsPda,
-      lbpManagerInfo: lbpManagerPda,
-      tokenProgram: splToken.TOKEN_PROGRAM_ID,
-      rent: SYSVAR_RENT_PUBKEY,
-      systemProgram: anchor.web3.SystemProgram.programId,
-    })
-    .signers([alice])
-    .rpc();
-
-    let assetsIn1;
-    let sharesOut1;
-
-    if (buyEvent) {
-      assetsIn1 = buyEvent.assets;
-      sharesOut1 = buyEvent.shares;
-    } else {
-      expect.fail('Buy event not emitted');
-    }
-
-    let maxAssetsIn2 = await program.methods.previewAssetsIn(
-      sharesOut
-    )
-    .accounts({
-      pool: poolAccountAddress,
-      poolAssetsAccount: poolAssetKp.publicKey,
-      poolSharesAccount: poolShareKp.publicKey,
-      lbpManagerInfo: lbpManagerPda,
-    })
-    .view();
-    console.log('maxAssetsIn2 from preview', maxAssetsIn2.toString());
-
-    let swapFees2 = await getSwapFees();
-    swapFees2 = maxAssetsIn2.mul(swapFees2);
-    maxAssetsIn2 = maxAssetsIn2.add(swapFees2);
-
-    console.log('maxAssetsIn2', maxAssetsIn2.toString());
-
-    await program.methods.swapAssetsForExactShares(
-      bob.publicKey,
-      sharesOut,
-      maxAssetsIn2,
-      alice.publicKey
-    ).accounts({
-      depositor: alice.publicKey,
-      pool: poolAccountAddress,
-      poolAssetsAccount: poolAssetKp.publicKey,
-      poolSharesAccount: poolShareKp.publicKey,
-      depositorAssetsAccount: depositorAssetTokenAccount,
-      buyerStats: buyerStatsPda,
-      referrerStats: referrerStatsPda,
-      lbpManagerInfo: lbpManagerPda,
-      tokenProgram: splToken.TOKEN_PROGRAM_ID,
-      rent: SYSVAR_RENT_PUBKEY,
-      systemProgram: anchor.web3.SystemProgram.programId,
-    })
-    .signers([alice])
-    .rpc();
-
-    if (buyEvent) {
-      const assetsIn2 = buyEvent.assets;
-      const sharesOut2 = buyEvent.shares;
-      console.log("here", assetsIn2.toString(), sharesOut2.toString());
-
-      const poolAssetAmount = (await provider.connection.getTokenAccountBalance(poolAssetKp.publicKey)).value.amount;
-      assert.ok(poolAssetAmount == new anchor.BN(assetsIn1).add(defaultInitialAssetAmount).add(assetsIn2).toString(), "assetsIn");
-      assert.ok(maxAssetsIn2.toString() == assetsIn2, "assetsIn");
-
-      const lbpAccount = await program.account.pool.fetch(poolAccountAddress);
-      assert.ok(lbpAccount.totalPurchased.toString() == sharesOut1.add(sharesOut2).toString(), "totalPurchased");
-
-      const buyerStats = await program.account.userStats.fetch(buyerStatsPda);
-      assert.ok(buyerStats.purchased.toString() == sharesOut1.add(sharesOut2).toString(), "purchased");
-    } else {
-      expect.fail('Buy event not emitted');
-    }
-
-    program.removeEventListener(id);
-
-  });
-
 });

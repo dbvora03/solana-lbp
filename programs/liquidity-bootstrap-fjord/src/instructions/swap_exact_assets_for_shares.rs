@@ -47,7 +47,7 @@ pub struct SwapExactAssetsForShares<'info> {
   pub depositor_asset_account: Account<'info, TokenAccount>,
 
   #[account(
-    init,
+    init_if_needed,
     seeds = [
       b"user_stats".as_ref(),
       &pool.key().as_ref(),
@@ -60,7 +60,7 @@ pub struct SwapExactAssetsForShares<'info> {
   pub buyer_stats: Box<Account<'info, UserStats>>,
 
   #[account(
-    init,
+    init_if_needed,
     seeds = [
       b"user_stats".as_ref(),
       &pool.key().as_ref(),
@@ -82,30 +82,28 @@ pub struct SwapExactAssetsForShares<'info> {
 
 pub fn handler(
   ctx: Context<SwapExactAssetsForShares>,
+  referrer: Pubkey,
   assets_in: u64,
   min_shares_out: u64,
   recipient: Pubkey,
-  referrer: Pubkey  
 ) -> Result<u64> {
-
   let pool = &mut ctx.accounts.pool;
   let lbp_manager_info = &mut ctx.accounts.lbp_manager_info;
-
-  let swap_fee: u64 = assets_in * (lbp_manager_info.swap_fee);
-  pool.total_swap_fees_asset += swap_fee;
-
-  let assets: u64 = ctx.accounts.pool_assets_account.amount;
-  let shares: u64 = ctx.accounts.pool_shares_account.amount;
   let buyer_stats = &mut ctx.accounts.buyer_stats;
   let referrer_stats = &mut ctx.accounts.referrer_stats;
 
+  let assets: u64 = ctx.accounts.pool_assets_account.amount;
+  let shares: u64 = ctx.accounts.pool_shares_account.amount;
+  
+  let swap_fee: u64 = assets_in * (lbp_manager_info.swap_fee / 1_000_000_000);
+  pool.total_swap_fees_asset += swap_fee;
 
   let shares_out_result = preview_shares_out(pool, assets_in, assets, shares);
   if shares_out_result.is_err() {
     return err!(ErrorCode::MathError);
   }
 
-  let mut shares_out = shares_out_result.unwrap();
+  let shares_out = shares_out_result.unwrap();
 
   if shares_out < min_shares_out {
     return err!(ErrorCode::SlippageExceeded);

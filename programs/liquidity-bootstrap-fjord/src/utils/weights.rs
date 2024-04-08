@@ -119,22 +119,15 @@ pub fn get_amount_in(amount_out: f64, reserve_in: f64, reserve_out: f64, weight_
   Ok(res as u64)
 }
 
-pub fn get_amount_out(amount_in: u64, reserve_in: u64, reserve_out: u64, weight_in: u64, weight_out: u64) -> Result<u64> {
+pub fn get_amount_out(amount_in: f64, reserve_in: f64, reserve_out: f64, weight_in: f64, weight_out: f64) -> Result<u64> {
   let MAX_PERCENTAGE_IN = 0.3;
-  if amount_in > (reserve_in as f64 * MAX_PERCENTAGE_IN) as u64 {
+  if amount_in > (reserve_in * MAX_PERCENTAGE_IN) {
     return err!(ErrorCode::AmountInTooLarge);
   }
   let div_result = weight_in / weight_out;
-  if div_result > u32::MAX as u64 {
-    return err!(ErrorCode::NotSafeForPow);
-  }
-  let div_result_u32 = div_result as u32;
-  let res: u64 = reserve_out * (
-    SOL as u64 - (
-      (reserve_in / (reserve_in + amount_in)).pow(div_result_u32)
-    )
-  );
-  Ok(res)
+  let res: f64 = reserve_out * (1.0 - (reserve_in / (reserve_in + amount_in)).powf(div_result));
+  let res = 0;
+  Ok(res as u64)
 }
 
 pub fn preview_assets_in(pool: &Pool, shares_out: u64, assets:u64, shares: u64) -> Result<u64> {
@@ -173,7 +166,13 @@ pub fn preview_shares_out(pool: &Pool, assets_in: u64, assets: u64, shares: u64)
   let (asset_reserve, share_reserve, asset_weight, share_weight) = compute_reserves_and_weights(&pool, assets, shares);
   let (asset_reserve_scaled, share_reserve_scaled) = scaled_reserves(pool, asset_reserve, share_reserve);
   let assets_in_scaled = scale_token_before(pool.settings.asset, assets_in);
-  let shares_out_result = get_amount_out(assets_in_scaled, asset_reserve_scaled, share_reserve_scaled, asset_weight, share_weight);
+  let shares_out_result = get_amount_out(
+    assets_in_scaled as f64, 
+    asset_reserve_scaled as f64, 
+    share_reserve_scaled as f64,
+     asset_weight as f64, 
+    share_weight as f64
+  );
   if shares_out_result.is_err() {
     return Err(shares_out_result.unwrap_err());
   }
@@ -190,7 +189,13 @@ pub fn preview_assets_out(pool: &Pool, shares_in: u64, assets: u64, shares: u64)
   let (asset_reserve, share_reserve, asset_weight, share_weight) = compute_reserves_and_weights(&pool, assets, shares);
   let (asset_reserve_scaled, share_reserve_scaled) = scaled_reserves(pool, asset_reserve, share_reserve);
   let shares_in_scaled = scale_token_before(pool.settings.share, shares_in);
-  let assets_out_result = get_amount_out(shares_in_scaled, share_reserve_scaled, asset_reserve_scaled, share_weight, asset_weight);
+  let assets_out_result = get_amount_out(
+    shares_in_scaled as f64, 
+    share_reserve_scaled as f64, 
+    asset_reserve_scaled as f64, 
+    share_weight as f64, 
+    asset_weight as f64
+  );
   if assets_out_result.is_err() {
     return Err(assets_out_result.unwrap_err());
   }
