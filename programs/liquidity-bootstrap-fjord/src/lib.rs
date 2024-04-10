@@ -91,5 +91,13 @@ pub mod liquidity_bootstrap_fjord {
     pub fn swap_shares_for_exact_assets(ctx: Context<SwapSharesForExactAssets>, recipient: Pubkey, assets_out: u64, max_shares_in: u64) -> Result<u64> {
         instructions::swap_shares_for_exact_assets::handler(ctx, recipient, assets_out, max_shares_in)
     }
+
+    pub fn redeem(ctx: Context<Redeem>, recipient: Pubkey) -> Result<()> {
+        instructions::redeem::handler(ctx, recipient)
+    }
+
+    pub fn close(ctx: Context<Close>) -> Result<()> {
+        instructions::close::handler(ctx)
+    }
 }
 
