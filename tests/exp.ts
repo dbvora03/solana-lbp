@@ -209,23 +209,15 @@ describe.only("exp", () => {
         assetVault, 
         shareVault, 
         shareVaultAuthority,
-        managerShareVault,
-        managerShareVaultAuthority
+        managerShareVault
     ) => {
-        
-        const token = await createTokenAccount(
-            provider,
-            shareMint,
-            provider.wallet.publicKey
-        );
-        
         
         await program.methods.close().accounts({
             pool: pool,
             assetVault,
             shareVault,
             shareVaultAuthority,
-            managerShareVault: token,
+            managerShareVault,
             
             tokenProgram: splToken.TOKEN_PROGRAM_ID,
             systemProgram: anchor.web3.SystemProgram.programId,
@@ -233,7 +225,21 @@ describe.only("exp", () => {
         .rpc()
     };
 
+    const createBuyerStats = async (
+        pool: anchor.web3.PublicKey,
+        buyer: anchor.web3.PublicKey
+    ) => {
+        const [buyerStatsPda] = anchor.web3.PublicKey.findProgramAddressSync(
+            [
+              anchor.utils.bytes.utf8.encode("user_stats"),
+              pool.toBuffer(),
+              buyer.toBuffer(),
+            ],
+            program.programId
+          );
 
+        return buyerStatsPda
+    }
 
     it.only("should redeem all after vest end", async () => {
 
@@ -257,10 +263,21 @@ describe.only("exp", () => {
             decimals
         );
 
+        const buyer = anchor.web3.Keypair.generate();
+
         const pool = anchor.web3.Keypair.generate();
         const assetVault = anchor.web3.Keypair.generate();
         const shareVault = anchor.web3.Keypair.generate();
-        const managerShareVault = anchor.web3.Keypair.generate();
+        const managerShareVault = await createTokenAccount(
+            provider,
+            shareMint,
+            provider.wallet.publicKey
+        );
+        const redeemRecipientShareVault = await createTokenAccount(
+            provider,
+            shareMint,
+            provider.wallet.publicKey
+        );
 
         let [assetVaultAuthority, assetVaultNonce] =
             anchor.web3.PublicKey.findProgramAddressSync(
@@ -273,11 +290,6 @@ describe.only("exp", () => {
                     anchor.utils.bytes.utf8.encode("share"), 
                     pool.publicKey.toBuffer()
                 ],
-                program.programId
-            );
-        let [managerShareVaultAuthority, managerShareVaultNonce] = 
-            anchor.web3.PublicKey.findProgramAddressSync(
-                [anchor.utils.bytes.utf8.encode("manager"), pool.publicKey.toBuffer()],
                 program.programId
             );
 
@@ -337,13 +349,39 @@ describe.only("exp", () => {
             shareVault.publicKey,
             shareVaultAuthority,
             managerShareVault,
-            managerShareVaultAuthority
         );
-
 
         // redeem
 
-        
+        const buyerStats = new anchor.web3.Keypair();
+
+        await program.methods.createUserStats(
+            buyer.publicKey,
+        ).accounts({
+            userStats: buyerStats.publicKey,
+            pool: pool.publicKey,
+            systemProgram: anchor.web3.SystemProgram.programId,
+        }).signers(
+            [buyerStats]
+        ).preInstructions(
+            [
+                await program.account.userStats.createInstruction(buyerStats)
+            ]
+        ).rpc();
+
+        await program.methods.redeem(
+            redeemRecipientShareVault
+        ).accounts({
+            pool: pool.publicKey,
+            shareVault: shareVault.publicKey,
+            shareVaultAuthority: shareVaultAuthority,
+            lbpManagerInfo: lbpManagerPda,
+            buyerStats: buyerStats.publicKey,
+            recipientShareVault: redeemRecipientShareVault,
+            tokenProgram: splToken.TOKEN_PROGRAM_ID,
+            rent: SYSVAR_RENT_PUBKEY,
+            systemProgram: anchor.web3.SystemProgram.programId,
+        }).rpc();
 
 
     })
