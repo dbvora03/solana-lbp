@@ -5,7 +5,7 @@ import { LiquidityBootstrapFjord } from "../target/types/liquidity_bootstrap_fjo
 import { assert, expect } from "chai";
 import { SYSVAR_RENT_PUBKEY } from "@solana/web3.js";
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
-describe.only("redeem", () => {
+describe("redeem", () => {
   // constants
   const SOL = new anchor.BN(1_000_000_000);
   const ONE_DAY = new anchor.BN(86400);
@@ -148,7 +148,7 @@ describe.only("redeem", () => {
         depositorAccountAsset: creatorAssetTokenAccount,
         depositorAccountShare: creatorShareTokenAccount,
         lbpManagerInfo: lbpManagerPda,
-        pool: pool_account_address,
+        pool: pool.publicKey,
         // poolAccountAsset: poolAssetKp.publicKey,
         poolAccountShare: poolShareKp.publicKey,
         tokenProgram: splToken.TOKEN_PROGRAM_ID,
@@ -417,7 +417,7 @@ describe.only("redeem", () => {
     
   });
 
-  it.only("should redeem all after vest end", async () => {
+  it("should redeem all after vest end", async () => {
     const poolId = new anchor.BN(801);
     const poolAccountAddress = await get_pool_account_address(poolId);
     const poolSettings = await getDefaultPoolSettings();
@@ -431,8 +431,6 @@ describe.only("redeem", () => {
 
 
     await create_pool(poolSettings, poolId);
-
-    return
 
     await setUp(poolAccountAddress);
 

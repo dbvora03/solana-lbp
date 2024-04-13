@@ -53,14 +53,14 @@ pub struct Close<'info> {
   // )]
   // pub manager_asset_token_account: Account<'info, TokenAccount>,
 
-  #[account(mut)]
-  pub lbp_manager_info: Account<'info, LBPManagerInfo>,
+  // #[account(mut)]
+  // pub lbp_manager_info: Account<'info, LBPManagerInfo>,
 
-  #[account(
-    mut,
-    constraint = pool.lbp_manager == lbp_manager_info.key()
-  )]
-  pub pool: Account<'info, Pool>,
+  // #[account(
+  //   mut,
+  //   constraint = pool.lbp_manager == lbp_manager_info.key()
+  // )]
+  // pub pool: Account<'info, Pool>,
 
   pub token_program: Program<'info, Token>,
   pub system_program: Program<'info, System>,
