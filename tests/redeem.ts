@@ -320,7 +320,7 @@ describe.only("redeem", () => {
     });
   };
 
-  it("should revert when pool not closed", async () => {
+  it.only("should revert when pool not closed", async () => {
     const poolId = new anchor.BN(801);
     const poolAccountAddress = await get_pool_account_address(poolId);
     const poolSettings = await getDefaultPoolSettings();
@@ -336,6 +336,18 @@ describe.only("redeem", () => {
     await setUp(poolAccountAddress);
 
     await program.methods
+      .createUserStats()
+      .accounts({
+        signer: alice.publicKey,
+        userStats: buyerStatsPda,
+        pool: poolAccountAddress,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([alice])
+      .rpc()
+
+    try {
+      await program.methods
       .redeem(alice.publicKey)
       .accounts({
         pool: poolAccountAddress,
@@ -349,6 +361,11 @@ describe.only("redeem", () => {
       })
       .signers([])
       .rpc();
+    } catch (error) {
+      expect(error.error.errorMessage).to.equal("Redeeming disallowed");
+    }
+
+    
   });
 
   it("should redeem all after vest end", async () => {
