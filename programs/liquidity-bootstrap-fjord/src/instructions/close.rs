@@ -7,6 +7,29 @@ use anchor_spl::token::{self, TokenAccount, Transfer, Token};
 #[derive(Accounts)]
 pub struct Close<'info> {
 
+  #[account(mut)]
+  pub pool: Box<Account<'info, Pool>>,
+
+  #[account(mut)]
+  pub asset_vault: Account<'info, TokenAccount>,
+
+  #[account(mut)]
+  pub share_vault: Account<'info, TokenAccount>,
+
+  /// CHECK: This is not dangerous because we don't read or write from this account
+  #[account(
+    seeds = [
+      b"share".as_ref(), 
+      pool.to_account_info().key.as_ref()
+    ],
+    bump = pool.share_vault_nonce,
+  )]
+  pub share_vault_authority: AccountInfo<'info>,
+  
+
+  #[account(mut)]
+  pub manager_share_vault: Account<'info, TokenAccount>,
+
   // #[account(mut)]
   // pub signer: Signer<'info>,
 
@@ -67,10 +90,9 @@ pub struct Close<'info> {
 }
 
 pub fn handler(ctx: Context<Close>) -> Result<()> {
-  let pool = &mut ctx.accounts.pool;
   // let lbp_manager_info = &mut ctx.accounts.lbp_manager_info;
-  // let assets: u64 = ctx.accounts.pool_assets_account.amount;
-  // let shares: u64 = ctx.accounts.pool_shares_account.amount;
+  let assets: u64 = ctx.accounts.asset_vault.amount;
+  let shares: u64 = ctx.accounts.share_vault.amount;
 
   // if pool.closed {
   //   return err!(ErrorCode::ClosingDisallowed);
@@ -160,23 +182,31 @@ pub fn handler(ctx: Context<Close>) -> Result<()> {
     // )?;
   // }
 
-  // let unsold_shares = shares - pool.total_purchased;
+  let unsold_shares = shares - ctx.accounts.pool.total_purchased;
 
-  // if shares != 0 {
-  //   token::transfer(
-  //     CpiContext::new(
-  //         ctx.accounts.token_program.to_account_info(),
-  //         Transfer {  
-  //             from: ctx.accounts.pool_shares_account.to_account_info(),
-  //             to: ctx.accounts.manager_share_token_account.to_account_info(),
-  //             authority: ctx.accounts.signer.to_account_info(),
-  //         },
-  //     ),
-  //     unsold_shares,
-  //   )?;
-  // }
+  if shares != 0 {
+    let seeds = &[
+      b"share".as_ref(),
+      ctx.accounts.pool.to_account_info().key.as_ref(),
+      &[ctx.accounts.pool.share_vault_nonce],
+    ];
+    let signer = &[&seeds[..]];
 
-  pool.closed = true;
+    token::transfer(
+      CpiContext::new_with_signer(
+          ctx.accounts.token_program.to_account_info(),
+          Transfer {  
+              from: ctx.accounts.share_vault.to_account_info(),
+              to: ctx.accounts.manager_share_vault.to_account_info(),
+              authority: ctx.accounts.share_vault_authority.to_account_info(),
+          },
+          signer,
+      ),
+      unsold_shares,
+    )?;
+  }
+
+  ctx.accounts.pool.closed = true;
 
   // emit!(ClosePool {
   //   caller: *ctx.accounts.signer.to_account_info().key,

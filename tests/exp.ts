@@ -150,6 +150,20 @@ describe.only("exp", () => {
         ];
     }
 
+    async function createTokenAccount(
+        provider: anchor.AnchorProvider,
+        mint: anchor.web3.PublicKey,
+        owner: anchor.web3.PublicKey
+      ): Promise<anchor.web3.PublicKey> {
+        const vault = new anchor.web3.Keypair();
+        const tx = new anchor.web3.Transaction();
+        tx.add(
+          ...(await createTokenAccountInstrs(provider, vault.publicKey, mint, owner))
+        );
+        await provider.sendAndConfirm(tx, [vault]);
+        return vault.publicKey;
+    }
+
     const fund = async (pubkey) => {
         const airdropSignature = await provider.connection.requestAirdrop(
           pubkey,
@@ -190,19 +204,33 @@ describe.only("exp", () => {
             .rpc();
     }
 
-    const closePool = async (poolAccountAddress) => {
+    const closePool = async (
+        pool, 
+        assetVault, 
+        shareVault, 
+        shareVaultAuthority,
+        managerShareVault,
+        managerShareVaultAuthority
+    ) => {
+        
+        const token = await createTokenAccount(
+            provider,
+            shareMint,
+            provider.wallet.publicKey
+        );
+        
+        
         await program.methods.close().accounts({
-          // poolAssetsAccount: poolAssetKp.publicKey,
-          // poolSharesAccount: poolShareKp.publicKey,
-          // feeAssetRecAccount: creatorAssetTokenAccount,
-          // feeShareRecAccount: creatorShareTokenAccount,
-          // managerAssetTokenAccount: feeRecipientAssetTokenAccount,
-          // managerShareTokenAccount: feeRecipientShareTokenAccount,
-        //   lbpManagerInfo: lbpManagerPda,
-          pool: poolAccountAddress,
-          tokenProgram: splToken.TOKEN_PROGRAM_ID,
-          systemProgram: anchor.web3.SystemProgram.programId,
-        }).rpc()
+            pool: pool,
+            assetVault,
+            shareVault,
+            shareVaultAuthority,
+            managerShareVault: token,
+            
+            tokenProgram: splToken.TOKEN_PROGRAM_ID,
+            systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .rpc()
     };
 
 
@@ -232,15 +260,24 @@ describe.only("exp", () => {
         const pool = anchor.web3.Keypair.generate();
         const assetVault = anchor.web3.Keypair.generate();
         const shareVault = anchor.web3.Keypair.generate();
+        const managerShareVault = anchor.web3.Keypair.generate();
 
-        let [assetVaultAuthority, aseetVaultNonce] =
+        let [assetVaultAuthority, assetVaultNonce] =
             anchor.web3.PublicKey.findProgramAddressSync(
                 [anchor.utils.bytes.utf8.encode("asset"), pool.publicKey.toBuffer()],
                 program.programId
             );
         let [shareVaultAuthority, shareVaultNonce] =
             anchor.web3.PublicKey.findProgramAddressSync(
-                [anchor.utils.bytes.utf8.encode("share"), pool.publicKey.toBuffer()],
+                [
+                    anchor.utils.bytes.utf8.encode("share"), 
+                    pool.publicKey.toBuffer()
+                ],
+                program.programId
+            );
+        let [managerShareVaultAuthority, managerShareVaultNonce] = 
+            anchor.web3.PublicKey.findProgramAddressSync(
+                [anchor.utils.bytes.utf8.encode("manager"), pool.publicKey.toBuffer()],
                 program.programId
             );
 
@@ -252,7 +289,14 @@ describe.only("exp", () => {
         const poolSettings = await getDefaultPoolSettings();
 
         await program.methods
-            .createPool(poolSettings, poolId, defaultInitialShareAmount, defaultInitialAssetAmount)
+            .createPool(
+                poolSettings, 
+                poolId, 
+                defaultInitialShareAmount, 
+                defaultInitialAssetAmount,
+                shareVaultNonce,
+                assetVaultNonce,
+            )
             .accounts({
                 pool: pool.publicKey,
                 assetVault: assetVault.publicKey,
@@ -287,7 +331,19 @@ describe.only("exp", () => {
         
         // close the pool
         
-        // await closePool(poolAccountAddress);
+        await closePool(
+            pool.publicKey,
+            assetVault.publicKey,
+            shareVault.publicKey,
+            shareVaultAuthority,
+            managerShareVault,
+            managerShareVaultAuthority
+        );
+
+
+        // redeem
+
+        
 
 
     })

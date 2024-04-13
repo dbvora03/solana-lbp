@@ -30,6 +30,7 @@ pub struct Pool {
   pub total_swap_fees_share: u64, // 8
   pub total_purchased: u64, // 8
   pub total_referred: u64, // 8
-  pub bump: u8, // 1
+  pub share_vault_nonce: u8, // 1
+  pub asset_vault_nonce: u8, // 1
 }
 

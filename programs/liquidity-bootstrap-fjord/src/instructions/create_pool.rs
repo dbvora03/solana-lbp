@@ -101,6 +101,8 @@ pub fn handler(
   id: u64, 
   shares: u64, 
   assets: u64,
+  share_vault_nonce: u8,
+  asset_vault_nonce: u8,
 ) -> Result<()> {
   let pool = &mut ctx.accounts.pool;
   if pool.initialized {
@@ -145,7 +147,8 @@ pub fn handler(
   pool.total_swap_fees_share = 0;
   pool.total_purchased = 0;
   pool.total_referred = 0;
-  pool.bump = 0; // TODO: check this ???
+  pool.share_vault_nonce = share_vault_nonce;
+  pool.asset_vault_nonce = asset_vault_nonce;
 
   token::transfer(
     CpiContext::new(
