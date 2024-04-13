@@ -101,13 +101,16 @@ pub fn handler(
 
   pool.total_purchased = total_purchased_before - shares_in;
 
+  msg!("Swapping shares for assets");
+
+  
   token::transfer(
     CpiContext::new(
         ctx.accounts.token_program.to_account_info(),
         Transfer {
             from: ctx.accounts.pool_assets_account.to_account_info(),
             to: ctx.accounts.depositor_assets_account.to_account_info(),
-            authority: ctx.accounts.pool_shares_account.to_account_info(),
+            authority: ctx.accounts.pool.to_account_info(),
         },
     ),
     assets_out,

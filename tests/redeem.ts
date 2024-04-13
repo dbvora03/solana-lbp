@@ -12,15 +12,16 @@ describe.only("redeem", () => {
   const TWO_DAYS = new anchor.BN(172800);
   const TEN_DAYS = new anchor.BN(864000);
   const BN_0 = new anchor.BN(0);
-    const BN_1 = new anchor.BN(1);
+  const BN_1 = new anchor.BN(1);
   const defaultInitialShareAmount = SOL.mul(new anchor.BN(1000));
   const defaultInitialAssetAmount = SOL.mul(new anchor.BN(1000));
   const managerId = new anchor.BN(8);
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
-  const program = anchor.workspace.LiquidityBootstrapFjord as Program<LiquidityBootstrapFjord>;
-  
+  const program = anchor.workspace
+    .LiquidityBootstrapFjord as Program<LiquidityBootstrapFjord>;
+
   const creator = anchor.web3.Keypair.generate();
   const alice = anchor.web3.Keypair.generate();
   const bob = anchor.web3.Keypair.generate();
@@ -34,6 +35,9 @@ describe.only("redeem", () => {
   let creatorAssetTokenAccount;
   let creatorShareTokenAccount;
   let buyerStatsPda;
+
+  let feeRecipientAssetTokenAccount;
+  let feeRecipientShareTokenAccount;
 
   let now;
 
@@ -51,7 +55,11 @@ describe.only("redeem", () => {
   };
 
   const getDefaultPoolSettings = async () => {
-    now = new anchor.BN(await provider.connection.getBlockTime(await provider.connection.getSlot()))
+    now = new anchor.BN(
+      await provider.connection.getBlockTime(
+        await provider.connection.getSlot()
+      )
+    );
     const weightStart = SOL.div(new anchor.BN(2));
     const weightEnd = SOL.div(new anchor.BN(2));
     const saleStart = now.add(ONE_DAY);
@@ -65,38 +73,35 @@ describe.only("redeem", () => {
     const virtualAssets = BN_0;
     const virtualShares = BN_0;
     const poolSettings = {
-        asset: assetMint,
-        share: shareMint,
-        creator: creator.publicKey,
-        virtualAssets,
-        virtualShares,
-        maxSharePrice,
-        maxSharesOut,
-        maxAssetsIn,
-        weightStart,
-        weightEnd,
-        saleStart,
-        saleEnd,
-        vestCliff,
-        vestEnd,
-        sellingAllowed,
+      asset: assetMint,
+      share: shareMint,
+      creator: creator.publicKey,
+      virtualAssets,
+      virtualShares,
+      maxSharePrice,
+      maxSharesOut,
+      maxAssetsIn,
+      weightStart,
+      weightEnd,
+      saleStart,
+      saleEnd,
+      vestCliff,
+      vestEnd,
+      sellingAllowed,
     };
     return poolSettings;
-  }
+  };
 
   const create_pool = async (
-    poolSettings, 
+    poolSettings,
     poolId,
     initialShareAmount = defaultInitialShareAmount,
-    initialAssetAmount = defaultInitialAssetAmount,
+    initialAssetAmount = defaultInitialAssetAmount
   ) => {
     const pool_account_address = await get_pool_account_address(poolId);
-    await program.methods.createPool(
-        poolSettings,
-        poolId,
-        initialShareAmount,
-        initialAssetAmount
-    ).accounts({
+    await program.methods
+      .createPool(poolSettings, poolId, initialShareAmount, initialAssetAmount)
+      .accounts({
         depositor: creator.publicKey,
         assetMint,
         shareMint,
@@ -109,35 +114,51 @@ describe.only("redeem", () => {
         tokenProgram: splToken.TOKEN_PROGRAM_ID,
         rent: SYSVAR_RENT_PUBKEY,
         systemProgram: anchor.web3.SystemProgram.programId,
-    })
-    .signers([creator, poolAssetKp, poolShareKp])
-    .rpc();
-  }
+      })
+      .signers([creator, poolAssetKp, poolShareKp])
+      .rpc();
+  };
 
   const setUp = async (poolAccountAddress) => {
-    [buyerStatsPda] = await anchor.web3.PublicKey.findProgramAddressSync(
+    [buyerStatsPda] = anchor.web3.PublicKey.findProgramAddressSync(
       [
         anchor.utils.bytes.utf8.encode("user_stats"),
-        poolAccountAddress.toBuffer(), 
+        poolAccountAddress.toBuffer(),
         alice.publicKey.toBuffer(),
       ],
       program.programId
     );
-  }
+
+    const accountInfo = await program.provider.connection.getAccountInfo(
+      buyerStatsPda
+    );
+
+    if (accountInfo === null) {
+      await anchor.web3.PublicKey.createWithSeed(
+        poolAccountAddress,
+        [
+        anchor.utils.bytes.utf8.encode("user_stats"),
+        poolAccountAddress.toBuffer(),
+        alice.publicKey.toBuffer(),
+      ],
+        program.programId
+      );
+    }
+  };
 
   const get_pool_account_address = async (poolId) => {
     let [pool_account_address] = anchor.web3.PublicKey.findProgramAddressSync(
-        [
-            anchor.utils.bytes.utf8.encode("pool"),
-            lbpManagerPda.toBuffer(),
-            assetMint.toBuffer(),
-            shareMint.toBuffer(),
-            poolId.toArrayLike(Buffer, "le", 8),
-        ],
-        program.programId
+      [
+        anchor.utils.bytes.utf8.encode("pool"),
+        lbpManagerPda.toBuffer(),
+        assetMint.toBuffer(),
+        shareMint.toBuffer(),
+        poolId.toArrayLike(Buffer, "le", 8),
+      ],
+      program.programId
     );
     return pool_account_address;
-  }
+  };
 
   before(async () => {
     await fund(creator.publicKey);
@@ -150,10 +171,10 @@ describe.only("redeem", () => {
       ],
       program.programId
     );
-    
+
     // initialize pool factory
     const fee_recipient = provider.wallet.publicKey;
-    
+
     let tx = await program.methods
       .initialize(
         managerId,
@@ -177,41 +198,51 @@ describe.only("redeem", () => {
       6
     );
     shareMint = await splToken.createMint(
-        provider.connection,
-        (provider.wallet as NodeWallet).payer,
-        provider.wallet.publicKey,
-        provider.wallet.publicKey,
-        6
+      provider.connection,
+      (provider.wallet as NodeWallet).payer,
+      provider.wallet.publicKey,
+      provider.wallet.publicKey,
+      6
     );
-    depositorAssetTokenAccount =
-      await splToken.createAssociatedTokenAccount(
-          provider.connection,
-          (provider.wallet as NodeWallet).payer,
-          assetMint,
-          alice.publicKey
-      );
-    depositorSharesTokenAccount =
-        await splToken.createAssociatedTokenAccount(
-            provider.connection,
-            (provider.wallet as NodeWallet).payer,
-            shareMint,
-            alice.publicKey
-        );
-      creatorAssetTokenAccount =
-      await splToken.createAssociatedTokenAccount(
-          provider.connection,
-          (provider.wallet as NodeWallet).payer,
-          assetMint,
-          creator.publicKey
-      );
-    creatorShareTokenAccount =
-      await splToken.createAssociatedTokenAccount(
-          provider.connection,
-          (provider.wallet as NodeWallet).payer,
-          shareMint,
-          creator.publicKey
-      );
-    
+    depositorAssetTokenAccount = await splToken.createAssociatedTokenAccount(
+      provider.connection,
+      (provider.wallet as NodeWallet).payer,
+      assetMint,
+      alice.publicKey
+    );
+    depositorSharesTokenAccount = await splToken.createAssociatedTokenAccount(
+      provider.connection,
+      (provider.wallet as NodeWallet).payer,
+      shareMint,
+      alice.publicKey
+    );
+    creatorAssetTokenAccount = await splToken.createAssociatedTokenAccount(
+      provider.connection,
+      (provider.wallet as NodeWallet).payer,
+      assetMint,
+      creator.publicKey
+    );
+    creatorShareTokenAccount = await splToken.createAssociatedTokenAccount(
+      provider.connection,
+      (provider.wallet as NodeWallet).payer,
+      shareMint,
+      creator.publicKey
+    );
+
+    feeRecipientAssetTokenAccount = await splToken.createAssociatedTokenAccount(
+      provider.connection,
+      (provider.wallet as NodeWallet).payer,
+      assetMint,
+      provider.wallet.publicKey
+    );
+
+    feeRecipientShareTokenAccount = await splToken.createAssociatedTokenAccount(
+      provider.connection,
+      (provider.wallet as NodeWallet).payer,
+      shareMint,
+      provider.wallet.publicKey
+    );
+
     await splToken.mintTo(
       provider.connection,
       (provider.wallet as NodeWallet).payer,
@@ -236,22 +267,20 @@ describe.only("redeem", () => {
       (provider.wallet as NodeWallet).payer.publicKey,
       20_000_000 * SOL.toNumber()
     );
-    
+
     poolAssetKp = anchor.web3.Keypair.generate();
     poolShareKp = anchor.web3.Keypair.generate();
   });
 
   const swapExactAssetsForShares = async (assetsIn, poolAccountAddress) => {
     let buyEvent = null;
-    const id = program.addEventListener('Buy', (event, slot) => {
+    const id = program.addEventListener("Buy", (event, slot) => {
       buyEvent = event;
     });
 
-    await program.methods.swapExactAssetsForShares(
-        alice.publicKey,
-        assetsIn,
-        BN_0,
-      ).accounts({
+    await program.methods
+      .swapExactAssetsForShares(alice.publicKey, assetsIn, BN_0)
+      .accounts({
         depositor: alice.publicKey,
         pool: poolAccountAddress,
         poolAssetsAccount: poolAssetKp.publicKey,
@@ -267,36 +296,48 @@ describe.only("redeem", () => {
       .rpc();
 
     if (buyEvent) {
-        program.removeEventListener(id);
-        const sharesOut = buyEvent.shares;
-        return sharesOut;
+      program.removeEventListener(id);
+      const sharesOut = buyEvent.shares;
+      return sharesOut;
     } else {
-        program.removeEventListener(id);
-        expect.fail('Buy event not emitted');
+      program.removeEventListener(id);
+      expect.fail("Buy event not emitted");
     }
-  }
+  };
 
-    const closePool = async (poolAccountAddress) => {
-        await program.methods.close()
-        .accounts({
-            //
-        })
-    }
+  const closePool = async (poolAccountAddress) => {
+    await program.methods.close().accounts({
+      poolAssetsAccount: poolAssetKp.publicKey,
+      poolSharesAccount: poolShareKp.publicKey,
+      feeAssetRecAccount: creatorAssetTokenAccount,
+      feeShareRecAccount: creatorShareTokenAccount,
+      managerAssetTokenAccount: feeRecipientAssetTokenAccount,
+      managerShareTokenAccount: feeRecipientShareTokenAccount,
+      lbpManagerInfo: lbpManagerPda,
+      pool: poolAccountAddress,
+      tokenProgram: splToken.TOKEN_PROGRAM_ID,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    });
+  };
 
   it("should revert when pool not closed", async () => {
     const poolId = new anchor.BN(801);
     const poolAccountAddress = await get_pool_account_address(poolId);
     const poolSettings = await getDefaultPoolSettings();
-    now = new anchor.BN(await provider.connection.getBlockTime(await provider.connection.getSlot()))
+    now = new anchor.BN(
+      await provider.connection.getBlockTime(
+        await provider.connection.getSlot()
+      )
+    );
     poolSettings.vestCliff = now.sub(ONE_DAY);
     poolSettings.vestEnd = now; // vest end just passed
+
     await create_pool(poolSettings, poolId);
     await setUp(poolAccountAddress);
 
-    await program.methods.redeem(
-        alice.publicKey,
-    )
-    .accounts({
+    await program.methods
+      .redeem(alice.publicKey)
+      .accounts({
         pool: poolAccountAddress,
         lbpManagerInfo: lbpManagerPda,
         buyerStats: buyerStatsPda,
@@ -305,31 +346,39 @@ describe.only("redeem", () => {
         tokenProgram: splToken.TOKEN_PROGRAM_ID,
         rent: SYSVAR_RENT_PUBKEY,
         systemProgram: anchor.web3.SystemProgram.programId,
-    })
-    .signers([])
-    .rpc();
+      })
+      .signers([])
+      .rpc();
   });
 
   it("should redeem all after vest end", async () => {
     const poolId = new anchor.BN(801);
     const poolAccountAddress = await get_pool_account_address(poolId);
     const poolSettings = await getDefaultPoolSettings();
-    now = new anchor.BN(await provider.connection.getBlockTime(await provider.connection.getSlot()))
+    now = new anchor.BN(
+      await provider.connection.getBlockTime(
+        await provider.connection.getSlot()
+      )
+    );
     poolSettings.vestCliff = now.sub(ONE_DAY);
     poolSettings.vestEnd = now; // vest end just passed
     await create_pool(poolSettings, poolId);
     await setUp(poolAccountAddress);
 
+    await closePool(poolAccountAddress);
+
     const assetsIn = SOL;
-    const sharesOut = await swapExactAssetsForShares(assetsIn, poolAccountAddress);
+    const sharesOut = await swapExactAssetsForShares(
+      assetsIn,
+      poolAccountAddress
+    );
 
     const buyerStats = await program.account.userStats.fetch(buyerStatsPda);
     const userDebtBefore = buyerStats.purchased;
 
-    await program.methods.redeem(
-        alice.publicKey,
-    )
-    .accounts({
+    await program.methods
+      .redeem(alice.publicKey)
+      .accounts({
         pool: poolAccountAddress,
         lbpManagerInfo: lbpManagerPda,
         buyerStats: buyerStatsPda,
@@ -338,18 +387,12 @@ describe.only("redeem", () => {
         tokenProgram: splToken.TOKEN_PROGRAM_ID,
         rent: SYSVAR_RENT_PUBKEY,
         systemProgram: anchor.web3.SystemProgram.programId,
-    })
-    .signers([])
-    .rpc();
-    
-    
-  });
-  
-  it("should redeem nothing before vest cliff", async () => {
-
+      })
+      .signers([])
+      .rpc();
   });
 
-  it("should redeem some after vest cliff but before vest end", async () => {
-  });
+  it("should redeem nothing before vest cliff", async () => {});
 
+  it("should redeem some after vest cliff but before vest end", async () => {});
 });

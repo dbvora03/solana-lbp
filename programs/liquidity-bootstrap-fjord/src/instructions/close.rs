@@ -109,12 +109,14 @@ pub fn handler(ctx: Context<Close>) -> Result<()> {
           ctx.accounts.token_program.to_account_info(),
           Transfer {  
               from: ctx.accounts.pool_shares_account.to_account_info(),
-              to: ctx.accounts.fee_asset_rec_account.to_account_info(),
+              to: ctx.accounts.fee_asset_rec_account.to_account_info(), // fee reciever
               authority: ctx.accounts.signer.to_account_info(),
           },
       ),
       2 * pool.total_swap_fees_share // This is covering the overlap 
     )?;
+
+
 
     // This can be split up to use the percentage based allocation
     // AKA the for loop in distributeFee
@@ -143,6 +145,8 @@ pub fn handler(ctx: Context<Close>) -> Result<()> {
       platform_fees,
     )?;
 
+
+    // Transfer the rest to the owner of the LBP manager
     token::transfer(
       CpiContext::new(
           ctx.accounts.token_program.to_account_info(),
