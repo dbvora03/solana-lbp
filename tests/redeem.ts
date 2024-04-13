@@ -320,7 +320,7 @@ describe.only("redeem", () => {
     });
   };
 
-  it.only("should revert when pool not closed", async () => {
+  it("should revert when pool not closed", async () => {
     const poolId = new anchor.BN(801);
     const poolAccountAddress = await get_pool_account_address(poolId);
     const poolSettings = await getDefaultPoolSettings();
@@ -368,7 +368,7 @@ describe.only("redeem", () => {
     
   });
 
-  it("should redeem all after vest end", async () => {
+  it.only("should redeem all after vest end", async () => {
     const poolId = new anchor.BN(801);
     const poolAccountAddress = await get_pool_account_address(poolId);
     const poolSettings = await getDefaultPoolSettings();
