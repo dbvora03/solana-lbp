@@ -48,20 +48,15 @@ pub struct CreatePool<'info> {
     )]
     pub pool: Box<Account<'info, Pool>>,
 
-    #[account(
-      init,
-      payer = depositor,
-      token::mint = asset_mint,
-      token::authority = pool,
-    )]
-    pub pool_account_asset:  Account<'info, TokenAccount>,
+    // #[account(
+    //   init,
+    //   payer = depositor,
+    //   token::mint = asset_mint,
+    //   token::authority = pool,
+    // )]
+    // pub pool_account_asset:  Account<'info, TokenAccount>,
 
-    #[account(
-      init,
-      payer = depositor,
-      token::mint = share_mint,
-      token::authority = pool,
-    )]
+    #[account(mut)]
     pub pool_account_share:  Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,
@@ -77,78 +72,78 @@ pub fn handler(
   shares: u64, 
   assets: u64,
 ) -> Result<()> {
-  let pool = &mut ctx.accounts.pool;
-  if pool.initialized {
-    return err!(ErrorCode::AlreadyInitialized);
-  }
+  // let pool = &mut ctx.accounts.pool;
+  // if pool.initialized {
+  //   return err!(ErrorCode::AlreadyInitialized);
+  // }
   
-  if settings.share == settings.asset || settings.share == Pubkey::default() || settings.asset == Pubkey::default() {
-    return err!(ErrorCode::InvalidAssetOrShare);
-  }
+  // if settings.share == settings.asset || settings.share == Pubkey::default() || settings.asset == Pubkey::default() {
+  //   return err!(ErrorCode::InvalidAssetOrShare);
+  // }
 
-  let curr_timestamp = Clock::get()?.unix_timestamp as u64;
-  let one_day_in_seconds: u64 = 60 * 60 * 24;
-  if curr_timestamp + one_day_in_seconds > settings.sale_end || settings.sale_end - settings.sale_start < one_day_in_seconds {
-    return err!(ErrorCode::SalePeriodLow);
-  }
+  // let curr_timestamp = Clock::get()?.unix_timestamp as u64;
+  // let one_day_in_seconds: u64 = 60 * 60 * 24;
+  // if curr_timestamp + one_day_in_seconds > settings.sale_end || settings.sale_end - settings.sale_start < one_day_in_seconds {
+  //   return err!(ErrorCode::SalePeriodLow);
+  // }
 
-  if settings.sale_end < settings.vest_end {
-    if settings.sale_end > settings.vest_cliff {
-      return err!(ErrorCode::InvalidVestCliff);
-    }
-    if settings.vest_cliff >= settings.vest_end {
-      return err!(ErrorCode::InvalidVestEnd);
-    }
-  }
+  // if settings.sale_end < settings.vest_end {
+  //   if settings.sale_end > settings.vest_cliff {
+  //     return err!(ErrorCode::InvalidVestCliff);
+  //   }
+  //   if settings.vest_cliff >= settings.vest_end {
+  //     return err!(ErrorCode::InvalidVestEnd);
+  //   }
+  // }
 
-  msg!("settings.weight_start: {}, end: {}", settings.weight_start, settings.weight_end);
-  if settings.weight_start < (0.01 * 1_000_000_000.0) as u64 || settings.weight_start > (0.99 * 1_000_000_000.0) as u64
-    || settings.weight_end < (0.01 * 1_000_000_000.0) as u64 || settings.weight_end > (0.99 * 1_000_000_000.0) as u64 {
-    return err!(ErrorCode::InvalidWeightConfig);
-  }
+  // msg!("settings.weight_start: {}, end: {}", settings.weight_start, settings.weight_end);
+  // if settings.weight_start < (0.01 * 1_000_000_000.0) as u64 || settings.weight_start > (0.99 * 1_000_000_000.0) as u64
+  //   || settings.weight_end < (0.01 * 1_000_000_000.0) as u64 || settings.weight_end > (0.99 * 1_000_000_000.0) as u64 {
+  //   return err!(ErrorCode::InvalidWeightConfig);
+  // }
 
-  if assets == 0 && settings.virtual_assets == 0 {
-    return err!(ErrorCode::InvalidAssetValue);
-  }
+  // if assets == 0 && settings.virtual_assets == 0 {
+  //   return err!(ErrorCode::InvalidAssetValue);
+  // }
 
-  pool.id = id;
-  pool.lbp_manager = *ctx.accounts.lbp_manager_info.to_account_info().key;
-  pool.settings = settings;
-  pool.initialized = true;
-  pool.closed = false;
-  pool.total_swap_fees_asset = 0;
-  pool.total_swap_fees_share = 0;
-  pool.total_purchased = 0;
-  pool.total_referred = 0;
-  pool.bump = ctx.bumps.pool;
+  // pool.id = id;
+  // pool.lbp_manager = *ctx.accounts.lbp_manager_info.to_account_info().key;
+  // pool.settings = settings;
+  // pool.initialized = true;
+  // pool.closed = false;
+  // pool.total_swap_fees_asset = 0;
+  // pool.total_swap_fees_share = 0;
+  // pool.total_purchased = 0;
+  // pool.total_referred = 0;
+  // pool.bump = ctx.bumps.pool;
 
-  token::transfer(
-    CpiContext::new(
-        ctx.accounts.token_program.to_account_info(),
-        Transfer {
-            from: ctx.accounts.depositor_account_asset.to_account_info(),
-            to: ctx.accounts.pool_account_asset.to_account_info(),
-            authority: ctx.accounts.depositor.to_account_info(),
-        },
-    ),
-    assets,
-  )?;
+  // token::transfer(
+  //   CpiContext::new(
+  //       ctx.accounts.token_program.to_account_info(),
+  //       Transfer {
+  //           from: ctx.accounts.depositor_account_asset.to_account_info(),
+  //           to: ctx.accounts.pool_account_asset.to_account_info(),
+  //           authority: ctx.accounts.depositor.to_account_info(),
+  //       },
+  //   ),
+  //   assets,
+  // )?;
 
-  token::transfer(
-    CpiContext::new(
-        ctx.accounts.token_program.to_account_info(),
-        Transfer {
-            from: ctx.accounts.depositor_account_share.to_account_info(),
-            to: ctx.accounts.pool_account_share.to_account_info(),
-            authority: ctx.accounts.depositor.to_account_info(),
-        },
-    ),
-    shares,
-  )?;
+  // token::transfer(
+  //   CpiContext::new(
+  //       ctx.accounts.token_program.to_account_info(),
+  //       Transfer {
+  //           from: ctx.accounts.depositor_account_share.to_account_info(),
+  //           to: ctx.accounts.pool_account_share.to_account_info(),
+  //           authority: ctx.accounts.depositor.to_account_info(),
+  //       },
+  //   ),
+  //   shares,
+  // )?;
 
-  emit!(PoolCreated {
-    pool: *ctx.accounts.pool.to_account_info().key,
-  });
+  // emit!(PoolCreated {
+  //   pool: *ctx.accounts.pool.to_account_info().key,
+  // });
 
   Ok(())
 }

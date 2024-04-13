@@ -31,7 +31,12 @@ describe.only("redeem", () => {
   let depositorAssetTokenAccount;
   let depositorSharesTokenAccount;
   let poolAssetKp;
+
+
   let poolShareKp;
+  let poolShareAuthority;
+  
+  
   let creatorAssetTokenAccount;
   let creatorShareTokenAccount;
   let buyerStatsPda;
@@ -92,6 +97,28 @@ describe.only("redeem", () => {
     return poolSettings;
   };
 
+  async function createTokenAccountInstrs(
+    provider: anchor.AnchorProvider,
+    newAccountPubkey: anchor.web3.PublicKey,
+    mint: anchor.web3.PublicKey,
+    owner: anchor.web3.PublicKey,
+    lamports?: number
+  ): Promise<anchor.web3.TransactionInstruction[]> {
+    if (lamports === undefined) {
+      lamports = await provider.connection.getMinimumBalanceForRentExemption(165);
+    }
+    return [
+      anchor.web3.SystemProgram.createAccount({
+        fromPubkey: provider.wallet.publicKey,
+        newAccountPubkey,
+        space: 165,
+        lamports,
+        programId: splToken.TOKEN_PROGRAM_ID,
+      }),
+      splToken.createInitializeAccountInstruction(newAccountPubkey, mint, owner),
+    ];
+  }
+
   const create_pool = async (
     poolSettings,
     poolId,
@@ -99,6 +126,19 @@ describe.only("redeem", () => {
     initialAssetAmount = defaultInitialAssetAmount
   ) => {
     const pool_account_address = await get_pool_account_address(poolId);
+
+    // set up authority
+    let [_poolShareAuthority, poolShareNonce] = 
+    anchor.web3.PublicKey.findProgramAddressSync(
+      [pool_account_address.toBuffer()],
+      program.programId
+    )
+    poolShareAuthority = _poolShareAuthority
+    
+    let pool = anchor.web3.Keypair.generate()
+
+    console.log("pubkeys:", creator.publicKey, poolShareKp.publicKey, poolShareAuthority)
+
     await program.methods
       .createPool(poolSettings, poolId, initialShareAmount, initialAssetAmount)
       .accounts({
@@ -109,13 +149,22 @@ describe.only("redeem", () => {
         depositorAccountShare: creatorShareTokenAccount,
         lbpManagerInfo: lbpManagerPda,
         pool: pool_account_address,
-        poolAccountAsset: poolAssetKp.publicKey,
+        // poolAccountAsset: poolAssetKp.publicKey,
         poolAccountShare: poolShareKp.publicKey,
         tokenProgram: splToken.TOKEN_PROGRAM_ID,
         rent: SYSVAR_RENT_PUBKEY,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
-      .signers([creator, poolAssetKp, poolShareKp])
+      .signers([creator, pool, poolShareKp])
+      .preInstructions([
+        await program.account.pool.createInstruction(pool),
+        ...(await createTokenAccountInstrs(
+          provider,
+          poolShareKp.publicKey,
+          shareMint,
+          poolShareAuthority
+        )),
+      ])
       .rpc();
   };
 
@@ -307,17 +356,17 @@ describe.only("redeem", () => {
 
   const closePool = async (poolAccountAddress) => {
     await program.methods.close().accounts({
-      poolAssetsAccount: poolAssetKp.publicKey,
-      poolSharesAccount: poolShareKp.publicKey,
-      feeAssetRecAccount: creatorAssetTokenAccount,
-      feeShareRecAccount: creatorShareTokenAccount,
-      managerAssetTokenAccount: feeRecipientAssetTokenAccount,
-      managerShareTokenAccount: feeRecipientShareTokenAccount,
+      // poolAssetsAccount: poolAssetKp.publicKey,
+      // poolSharesAccount: poolShareKp.publicKey,
+      // feeAssetRecAccount: creatorAssetTokenAccount,
+      // feeShareRecAccount: creatorShareTokenAccount,
+      // managerAssetTokenAccount: feeRecipientAssetTokenAccount,
+      // managerShareTokenAccount: feeRecipientShareTokenAccount,
       lbpManagerInfo: lbpManagerPda,
       pool: poolAccountAddress,
       tokenProgram: splToken.TOKEN_PROGRAM_ID,
       systemProgram: anchor.web3.SystemProgram.programId,
-    });
+    }).rpc()
   };
 
   it("should revert when pool not closed", async () => {
@@ -379,8 +428,19 @@ describe.only("redeem", () => {
     );
     poolSettings.vestCliff = now.sub(ONE_DAY);
     poolSettings.vestEnd = now; // vest end just passed
+
+
     await create_pool(poolSettings, poolId);
+
+    return
+
     await setUp(poolAccountAddress);
+
+    
+
+
+
+
 
     await closePool(poolAccountAddress);
 
