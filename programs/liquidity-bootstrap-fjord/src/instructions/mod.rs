@@ -15,6 +15,8 @@ pub mod preview_shares_out;
 pub mod preview_assets_out;
 pub mod preview_shares_in;
 pub mod close;
+pub mod redeem;
+pub mod create_user_stats;
 
 pub use initialize::*;
 pub use set_swap_fee::*;
@@ -34,3 +36,5 @@ pub use swap_exact_shares_for_assets::*;
 pub use swap_exact_assets_for_shares::*;
 pub use swap_assets_for_exact_shares::*;
 pub use close::*;
+pub use redeem::*;
+pub use create_user_stats::*;

@@ -46,16 +46,15 @@ pub struct Sell {
 }
 
 #[event]
-pub struct Redeem {
-  caller: Pubkey,
-  assets: u64,
-  shares: u64,
-}
-
-#[event]
 pub struct ClosePool {
-  pub caller: Pubkey,
   pub platform_fees: u64,
   pub swap_fees_asset: u64,
   pub swap_fees_share: u64,
+}
+
+#[event]
+pub struct Redeemed {
+  pub recipient: Pubkey,
+  pub shares: u64,
+  pub total_claimed: u64,
 }

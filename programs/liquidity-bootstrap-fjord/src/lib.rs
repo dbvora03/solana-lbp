@@ -56,8 +56,14 @@ pub mod liquidity_bootstrap_fjord {
         id: u64, 
         shares: u64, 
         assets: u64,
+        share_vault_nonce: u8,
+        asset_vault_nonce: u8,
     ) -> Result<()> {
-        instructions::create_pool::handler(ctx, settings, id, shares, assets)
+        instructions::create_pool::handler(ctx, settings, id, shares, assets, share_vault_nonce, asset_vault_nonce)
+    }
+
+    pub fn create_user_stats(ctx: Context<CreateUserStats>, depositor: Pubkey) -> Result<()> {
+        instructions::create_user_stats::handler(ctx, depositor)
     }
 
     pub fn preview_assets_in(ctx: Context<PreviewAssetsIn>, shares_out: u64) -> Result<u64> {
@@ -90,6 +96,14 @@ pub mod liquidity_bootstrap_fjord {
 
     pub fn swap_shares_for_exact_assets(ctx: Context<SwapSharesForExactAssets>, recipient: Pubkey, assets_out: u64, max_shares_in: u64) -> Result<u64> {
         instructions::swap_shares_for_exact_assets::handler(ctx, recipient, assets_out, max_shares_in)
+    }
+
+    pub fn redeem(ctx: Context<Redeem>) -> Result<()> {
+        instructions::redeem::handler(ctx)
+    }
+
+    pub fn close(ctx: Context<Close>) -> Result<()> {
+        instructions::close::handler(ctx)
     }
 }
 

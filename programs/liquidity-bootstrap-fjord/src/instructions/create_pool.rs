@@ -8,65 +8,32 @@ use anchor_spl::token::{self, TokenAccount, Transfer, Mint, Token};
 #[instruction(settings: PoolSettings, id: u64)]
 pub struct CreatePool<'info> {
 
-    #[account(mut)]
-    pub depositor: Signer<'info>,
+  #[account(zero)]
+  pub pool: Box<Account<'info, Pool>>,
 
-    asset_mint: Account<'info, Mint>,
-    share_mint: Account<'info, Mint>,
+  #[account(mut)]
+  pub asset_vault: Account<'info, TokenAccount>,
+  #[account(mut)]
+  pub share_vault: Account<'info, TokenAccount>,
 
-    #[account(
-      mut,
-      constraint = depositor_account_asset.mint == settings.asset,
-      constraint = depositor_account_asset.mint == asset_mint.key(),
-      constraint = depositor_account_asset.owner == depositor.key()
-    )]
-    pub depositor_account_asset:  Account<'info, TokenAccount>,
+  #[account(
+    mut,
+    constraint = depositor_asset_vault.mint == asset_vault.mint,
+    constraint = depositor_asset_vault.owner == depositor.key(),
+  )]
+  pub depositor_asset_vault: Account<'info, TokenAccount>,
 
-    #[account(
-      mut, 
-      constraint = depositor_account_share.mint == settings.share,
-      constraint = depositor_account_share.mint == share_mint.key(),
-      constraint = depositor_account_share.owner == depositor.key()
-    )]
-    pub depositor_account_share:  Account<'info, TokenAccount>,
+  #[account(mut)]
+  pub depositor_share_vault: Account<'info, TokenAccount>,
+  
+  #[account(mut)]
+  pub depositor: Signer<'info>,
 
-    // The liquidity pool manager info account
-    pub lbp_manager_info: Account<'info, LBPManagerInfo>,
-    
-    #[account(
-      init,
-      seeds = [
-        b"pool".as_ref(),
-        &lbp_manager_info.to_account_info().key().to_bytes(),
-        &asset_mint.key().as_ref(),
-        &share_mint.key().as_ref(),
-        &id.to_le_bytes().as_ref(),
-      ],
-      payer = depositor,
-      space = 8 + 32 + 32 + 32 + 32 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 8 + 1 + (8 + 1 + 8 + 8 + 8 + 1),
-      bump,
-    )]
-    pub pool: Box<Account<'info, Pool>>,
+  pub lbp_manager_info: Account<'info, LBPManagerInfo>,
 
-    #[account(
-      init,
-      payer = depositor,
-      token::mint = asset_mint,
-      token::authority = pool,
-    )]
-    pub pool_account_asset:  Account<'info, TokenAccount>,
-
-    #[account(
-      init,
-      payer = depositor,
-      token::mint = share_mint,
-      token::authority = pool,
-    )]
-    pub pool_account_share:  Account<'info, TokenAccount>,
-
-    pub token_program: Program<'info, Token>,
-    pub rent: Sysvar<'info, Rent>,
-    pub system_program: Program<'info, System>,
+  pub token_program: Program<'info, Token>,
+  pub rent: Sysvar<'info, Rent>,
+  pub system_program: Program<'info, System>,
 }
 
 
@@ -76,6 +43,8 @@ pub fn handler(
   id: u64, 
   shares: u64, 
   assets: u64,
+  share_vault_nonce: u8,
+  asset_vault_nonce: u8,
 ) -> Result<()> {
   let pool = &mut ctx.accounts.pool;
   if pool.initialized {
@@ -101,7 +70,6 @@ pub fn handler(
     }
   }
 
-  msg!("settings.weight_start: {}, end: {}", settings.weight_start, settings.weight_end);
   if settings.weight_start < (0.01 * 1_000_000_000.0) as u64 || settings.weight_start > (0.99 * 1_000_000_000.0) as u64
     || settings.weight_end < (0.01 * 1_000_000_000.0) as u64 || settings.weight_end > (0.99 * 1_000_000_000.0) as u64 {
     return err!(ErrorCode::InvalidWeightConfig);
@@ -120,14 +88,15 @@ pub fn handler(
   pool.total_swap_fees_share = 0;
   pool.total_purchased = 0;
   pool.total_referred = 0;
-  pool.bump = ctx.bumps.pool;
+  pool.share_vault_nonce = share_vault_nonce;
+  pool.asset_vault_nonce = asset_vault_nonce;
 
   token::transfer(
     CpiContext::new(
         ctx.accounts.token_program.to_account_info(),
         Transfer {
-            from: ctx.accounts.depositor_account_asset.to_account_info(),
-            to: ctx.accounts.pool_account_asset.to_account_info(),
+            from: ctx.accounts.depositor_asset_vault.to_account_info(),
+            to: ctx.accounts.asset_vault.to_account_info(),
             authority: ctx.accounts.depositor.to_account_info(),
         },
     ),
@@ -138,9 +107,9 @@ pub fn handler(
     CpiContext::new(
         ctx.accounts.token_program.to_account_info(),
         Transfer {
-            from: ctx.accounts.depositor_account_share.to_account_info(),
-            to: ctx.accounts.pool_account_share.to_account_info(),
-            authority: ctx.accounts.depositor.to_account_info(),
+            from: ctx.accounts.depositor_share_vault.to_account_info(),
+            to: ctx.accounts.share_vault.to_account_info(),
+            authority: ctx.accounts.depositor.to_account_info().clone(),
         },
     ),
     shares,

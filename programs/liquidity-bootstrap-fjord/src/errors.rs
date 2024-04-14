@@ -45,4 +45,9 @@ pub enum ErrorCode {
   #[msg("Clock error")]
   ClockError,
 
+  #[msg("Redeeming disallowed")]
+  RedeemingDisallowed,
+
+  #[msg("No Shares To Claim")]
+  NoSharesToClaim,
 }

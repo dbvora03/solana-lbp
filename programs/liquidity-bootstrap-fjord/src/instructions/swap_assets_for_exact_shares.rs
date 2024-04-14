@@ -13,17 +13,9 @@ pub struct SwapAssetsForExactShares<'info> {
     constraint = pool.lbp_manager == lbp_manager_info.key()
   )]
   pub pool: Account<'info, Pool>,
-  #[account(
-    mut,
-    constraint = pool_assets_account.mint == pool.settings.asset,
-    constraint = pool_assets_account.owner == pool.to_account_info().key(),
-  )]
+  #[account(mut)]
   pub pool_assets_account: Account<'info, TokenAccount>,
-  #[account(
-    mut,
-    constraint = pool_shares_account.mint == pool.settings.share,
-    constraint = pool_shares_account.owner == pool.to_account_info().key(),
-  )]
+  #[account(mut)]
   pub pool_shares_account: Account<'info, TokenAccount>,
   #[account(
     mut,
@@ -32,17 +24,7 @@ pub struct SwapAssetsForExactShares<'info> {
   )]
   pub depositor_assets_account: Account<'info, TokenAccount>,
 
-  #[account(
-    init_if_needed,
-    seeds = [
-      b"user_stats".as_ref(),
-      &pool.key().as_ref(),
-      &recipient.key().as_ref(),
-    ],
-    payer = depositor,
-    space = 8 + 32 + 32 + 8 + 8 + 1,
-    bump
-  )]
+  #[account(mut)]
   pub buyer_stats: Box<Account<'info, UserStats>>,
 
   pub lbp_manager_info: Account<'info, LBPManagerInfo>,
@@ -63,7 +45,7 @@ pub fn handler (
   let assets: u64 = ctx.accounts.pool_assets_account.amount;
   let shares: u64 = ctx.accounts.pool_shares_account.amount;
   // Preview the assets in
-  let mut assets_in_result = preview_assets_in(pool, shares_out, assets, shares);
+  let assets_in_result = preview_assets_in(pool, shares_out, assets, shares);
   if assets_in_result.is_err() {
     return err!(ErrorCode::MathError);
   }

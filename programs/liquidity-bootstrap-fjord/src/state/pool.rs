@@ -4,7 +4,6 @@ use anchor_lang::prelude::*;
 pub struct PoolSettings {
   pub asset: Pubkey, // 32
   pub share: Pubkey, // 32
-  pub creator: Pubkey, // 32
   pub virtual_assets: u64, // 8
   pub virtual_shares: u64, // 8
   pub max_share_price: u64, // 8
@@ -30,6 +29,7 @@ pub struct Pool {
   pub total_swap_fees_share: u64, // 8
   pub total_purchased: u64, // 8
   pub total_referred: u64, // 8
-  pub bump: u8, // 1
+  pub share_vault_nonce: u8, // 1
+  pub asset_vault_nonce: u8, // 1
 }
 

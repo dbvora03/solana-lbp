@@ -31,11 +31,11 @@ pub fn handler(
 ) -> Result<()> {
   let factory_settings = &mut ctx.accounts.lbp_manager_info;
 
-  if (
+  if 
     platform_fee > MAX_FEE_BIPS as u64 ||
     referrer_fee > MAX_FEE_BIPS as u64 ||
     swap_fee > MAX_FEE_BIPS as u64
-  ) {
+  {
     return err!(ErrorCode::MaxFeeExceeded);
   }
 
