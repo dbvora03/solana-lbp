@@ -63,7 +63,7 @@ export const createMintAndVault = async(
           mint.publicKey,
           vault.publicKey,
           provider.wallet.publicKey,
-          amount.toNumber()
+          BigInt(amount.toString())
         )
     );
 

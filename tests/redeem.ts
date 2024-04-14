@@ -7,7 +7,7 @@ import { ONE_DAY, SOL, closePool, createMintAndVault, createPool, createUser, cr
 
 describe("Redeem And Close Tests", () => {
     /* Settings */
-    const managerId = new anchor.BN(800);
+    const managerId = new anchor.BN(200);
     const decimals = 6; // mint decimals
 
     /* Global Variables */

@@ -6,7 +6,7 @@ import { ONE_DAY, SOL, closePool, createMintAndVault, createPool, createUser, cr
 
 describe("swap exact assets for shares", () => {
 /* Settings */
-const managerId = new anchor.BN(300);
+const managerId = new anchor.BN(400);
 const decimals = 6; // mint decimals
 
 /* Global Variables */
