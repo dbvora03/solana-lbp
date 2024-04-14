@@ -16,18 +16,20 @@ pub struct SwapSharesForExactAssets<'info> {
   )]
   pub pool: Account<'info, Pool>,
 
-  #[account(
-    mut,
-    constraint = pool_assets_account.mint == pool.settings.asset,
-    constraint = pool_assets_account.owner == pool.to_account_info().key(),
-  )]
+  #[account(mut)]
   pub pool_assets_account: Account<'info, TokenAccount>,
 
+  /// CHECK: This is not dangerous because we don't read or write from this account
   #[account(
-    mut,
-    constraint = pool_shares_account.mint == pool.settings.share,
-    constraint = pool_shares_account.owner == pool.to_account_info().key(),
+    seeds = [
+        b"asset".as_ref(), 
+        pool.to_account_info().key.as_ref()
+    ],
+    bump = pool.asset_vault_nonce,
   )]
+  pub asset_vault_authority: AccountInfo<'info>,
+
+  #[account(mut)]
   pub pool_shares_account: Account<'info, TokenAccount>,
 
   #[account(
@@ -37,17 +39,7 @@ pub struct SwapSharesForExactAssets<'info> {
   )]
   pub depositor_assets_account: Account<'info, TokenAccount>,
 
-  #[account(
-    init,
-    seeds = [
-      b"user_stats".as_ref(),
-      &pool.key().as_ref(),
-      &recipient.key().as_ref(),
-    ],
-    payer = depositor,
-    space = 8 + 32 + 32 + 8 + 8 + 1,
-    bump
-  )]
+  #[account(mut)]
   pub buyer_stats: Box<Account<'info, UserStats>>,
 
   #[account(mut)]
@@ -101,17 +93,22 @@ pub fn handler(
 
   pool.total_purchased = total_purchased_before - shares_in;
 
-  msg!("Swapping shares for assets");
+  let seeds = &[
+    b"asset".as_ref(),
+    ctx.accounts.pool.to_account_info().key.as_ref(),
+    &[ctx.accounts.pool.asset_vault_nonce],
+  ];
+  let signer = &[&seeds[..]];
 
-  
   token::transfer(
-    CpiContext::new(
+    CpiContext::new_with_signer(
         ctx.accounts.token_program.to_account_info(),
         Transfer {
             from: ctx.accounts.pool_assets_account.to_account_info(),
             to: ctx.accounts.depositor_assets_account.to_account_info(),
-            authority: ctx.accounts.pool.to_account_info(),
+            authority: ctx.accounts.asset_vault_authority.to_account_info(),
         },
+        signer,
     ),
     assets_out,
   )?;

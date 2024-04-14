@@ -278,6 +278,11 @@ export const createPool = async (
     }
 }
 
+export const getSwapFees = async (lbpManagerPda) => {
+    const lbpManagerInfoAccount = await program.account.lbpManagerInfo.fetch(lbpManagerPda);
+    return lbpManagerInfoAccount.swapFee;
+}
+
 /* Pool Methods */
 
 export const closePool = async (
