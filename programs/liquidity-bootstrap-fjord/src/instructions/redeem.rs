@@ -41,7 +41,7 @@ pub struct Redeem<'info> {
 
 pub fn handler(
     ctx: Context<Redeem>,
-) -> Result<()> {  
+) -> Result<()> {
     let buyer_stats = &mut ctx.accounts.buyer_stats;
 
     if !ctx.accounts.pool.closed {
@@ -57,6 +57,7 @@ pub fn handler(
     
     let mut claimable: u64;
     let claimed = buyer_stats.claimed;
+    msg!("Claimed: {}; purchased: {}", claimed, buyer_stats.purchased);
     if vest_shares && vest_end > curr_timestamp {
         let shares = buyer_stats.purchased;
         // if not reached vest cliff, no shares can be claimed

@@ -370,19 +370,22 @@ describe.only("exp", () => {
             );
         let [shareVaultAuthority, shareVaultNonce] =
             anchor.web3.PublicKey.findProgramAddressSync(
-                [
-                    anchor.utils.bytes.utf8.encode("share"), 
-                    pool.publicKey.toBuffer()
-                ],
+                [anchor.utils.bytes.utf8.encode("share"), pool.publicKey.toBuffer()],
                 program.programId
             );
 
         const poolId = new anchor.BN(801);
 
         // create pool
-        
 
         const poolSettings = await getDefaultPoolSettings();
+        const now = new anchor.BN(
+            await provider.connection.getBlockTime(
+              await provider.connection.getSlot()
+            )
+          );
+        poolSettings.vestCliff = now.sub(ONE_DAY);
+        poolSettings.vestEnd = now; // vest end just passed
 
         await program.methods
             .createPool(
@@ -470,6 +473,9 @@ describe.only("exp", () => {
             lbpManagerPda
         );
 
+        let buyerStatsAccount = await program.account.userStats.fetch(buyerStats.publicKey);
+        const userClaimedBefore = buyerStatsAccount.claimed;
+
         // redeem
         await program.methods.redeem(
         ).accounts({
@@ -484,6 +490,11 @@ describe.only("exp", () => {
             systemProgram: anchor.web3.SystemProgram.programId,
         }).rpc();
 
+        buyerStatsAccount = await program.account.userStats.fetch(buyerStats.publicKey);
+        const userClaimedAfter = buyerStatsAccount.purchased;
+
+        assert.ok(userClaimedBefore.toString() == "0", "user claimed before");
+        assert.ok(userClaimedAfter.toString() == sharesOut.toString(), "user claimed after");
 
     })
 
