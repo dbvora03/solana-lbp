@@ -336,6 +336,7 @@ const swapAssetsForExactShares = async ({
   poolAssetsAccount: anchor.web3.PublicKey;
   poolSharesAccount: anchor.web3.PublicKey;
   depositorAssetsAccount: anchor.web3.PublicKey;
+  depositorUserStats: anchor.web3.PublicKey;
 }) => {
   await program.methods.swapAssetsForExactShares(
     depositor.publicKey,
@@ -495,6 +496,9 @@ describe.only("lbp-examples", async () => {
       initialAssetAmount
     );
 
+    // Create User Stats
+    const { userStats: depositorUserStats } = await createUserStats(pool.publicKey, depositor);
+
     // Get pool info
     const poolInfo = await getPool(program, pool.publicKey);
 
@@ -510,6 +514,7 @@ describe.only("lbp-examples", async () => {
       poolAssetsAccount: poolAssetKp.publicKey,
       poolSharesAccount: poolShareKp.publicKey,
       depositorAssetsAccount: depositorAccountAsset,
+      depositorUserStats,
     });
 
     // Swap Shares for Exact Assets
@@ -518,8 +523,7 @@ describe.only("lbp-examples", async () => {
 
     // Swap Shares for Exact Assets
 
-    // Create User Stats
-    const { userStats: depositorUserStats } = await createUserStats(pool.publicKey, depositor);
+    
 
     // Get User stats
     const depositorUserStatsInfo = await getUserStats(program, depositorUserStats);
