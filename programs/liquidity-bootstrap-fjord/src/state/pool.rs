@@ -4,7 +4,6 @@ use anchor_lang::prelude::*;
 pub struct PoolSettings {
   pub asset: Pubkey, // 32
   pub share: Pubkey, // 32
-  pub creator: Pubkey, // 32
   pub virtual_assets: u64, // 8
   pub virtual_shares: u64, // 8
   pub max_share_price: u64, // 8
