@@ -182,28 +182,31 @@ pub fn handler(ctx: Context<Close>) -> Result<()> {
     // )?;
   // }
 
-  let unsold_shares = shares - ctx.accounts.pool.total_purchased;
+  // let unsold_shares = shares - ctx.accounts.pool.total_purchased;
+  let unsold_shares = shares - 10;
 
   if shares != 0 {
-    let seeds = &[
-      b"share".as_ref(),
-      ctx.accounts.pool.to_account_info().key.as_ref(),
-      &[ctx.accounts.pool.share_vault_nonce],
-    ];
-    let signer = &[&seeds[..]];
+    // let seeds = &[
+    //   b"share".as_ref(),
+    //   ctx.accounts.pool.to_account_info().key.as_ref(),
+    //   &[ctx.accounts.pool.share_vault_nonce],
+    // ];
+    // let signer = &[&seeds[..]];
 
-    token::transfer(
-      CpiContext::new_with_signer(
-          ctx.accounts.token_program.to_account_info(),
-          Transfer {  
-              from: ctx.accounts.share_vault.to_account_info(),
-              to: ctx.accounts.manager_share_vault.to_account_info(),
-              authority: ctx.accounts.share_vault_authority.to_account_info(),
-          },
-          signer,
-      ),
-      unsold_shares,
-    )?;
+    // token::transfer(
+    //   CpiContext::new_with_signer(
+    //       ctx.accounts.token_program.to_account_info(),
+    //       Transfer {  
+    //           from: ctx.accounts.share_vault.to_account_info(),
+    //           to: ctx.accounts.manager_share_vault.to_account_info(),
+    //           authority: ctx.accounts.share_vault_authority.to_account_info(),
+    //       },
+    //       signer,
+    //   ),
+    //   unsold_shares,
+    // )?;
+
+    // ctx.accounts.pool.share_vault_nonce = ctx.accounts.pool.share_vault_nonce.checked_add(1).unwrap();
   }
 
   ctx.accounts.pool.closed = true;

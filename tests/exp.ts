@@ -340,6 +340,7 @@ describe.only("exp", () => {
             ])
             .rpc();
 
+            
         
         // close the pool
         
@@ -370,14 +371,13 @@ describe.only("exp", () => {
         ).rpc();
 
         await program.methods.redeem(
-            redeemRecipientShareVault
         ).accounts({
             pool: pool.publicKey,
             shareVault: shareVault.publicKey,
             shareVaultAuthority: shareVaultAuthority,
             lbpManagerInfo: lbpManagerPda,
             buyerStats: buyerStats.publicKey,
-            recipientShareVault: redeemRecipientShareVault,
+            recipientShareVault: managerShareVault,
             tokenProgram: splToken.TOKEN_PROGRAM_ID,
             rent: SYSVAR_RENT_PUBKEY,
             systemProgram: anchor.web3.SystemProgram.programId,

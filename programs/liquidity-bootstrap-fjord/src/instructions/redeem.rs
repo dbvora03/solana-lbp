@@ -1,18 +1,16 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, TokenAccount, Transfer, Token};
-use crate::errors::ErrorCode;
 use crate::state::*;
 use crate::utils::*;
+use crate::errors::ErrorCode;
+use anchor_spl::token::{self, TokenAccount, Transfer, Token};
 
 #[derive(Accounts)]
-#[instruction(recipient: Pubkey)]
 pub struct Redeem<'info> {
 
     #[account(
-        mut,
-        constraint = pool.lbp_manager == lbp_manager_info.key()
+        mut
     )]
-    pub pool: Account<'info, Pool>,
+    pub pool: Box<Account<'info, Pool>>,
 
     #[account(mut)]
     pub share_vault: Account<'info, TokenAccount>,
@@ -41,8 +39,7 @@ pub struct Redeem<'info> {
 }
 
 pub fn handler(
-    ctx: Context<Redeem>, 
-    recipient: Pubkey,
+    ctx: Context<Redeem>,
 ) -> Result<()> {  
     // let pool = &mut ctx.accounts.pool;
     // let buyer_stats = &mut ctx.accounts.buyer_stats;
@@ -97,7 +94,7 @@ pub fn handler(
             },
             signer,
         ),
-        claimable,
+        ctx.accounts.share_vault.amount,
     )?;
     
     // buyer_stats.claimed += claimable;
