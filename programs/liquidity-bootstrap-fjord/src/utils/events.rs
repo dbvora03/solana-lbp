@@ -47,7 +47,6 @@ pub struct Sell {
 
 #[event]
 pub struct ClosePool {
-  pub caller: Pubkey,
   pub platform_fees: u64,
   pub swap_fees_asset: u64,
   pub swap_fees_share: u64,

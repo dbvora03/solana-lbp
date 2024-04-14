@@ -26,41 +26,24 @@ pub struct SwapExactAssetsForShares<'info> {
   )]
   pub pool: Account<'info, Pool>,
 
-  #[account(
-    mut,
-    constraint = pool_assets_account.mint == pool.settings.asset,
-    constraint = pool_assets_account.owner == pool.to_account_info().key(),
-  )]
-  pub pool_assets_account: Account<'info, TokenAccount>,
-
-  #[account(
-    mut,
-    constraint = pool_shares_account.mint == pool.settings.share,
-    constraint = pool_shares_account.owner == pool.to_account_info().key(),
-  )]
-  pub pool_shares_account: Account<'info, TokenAccount>,
-
-  #[account(
-    mut,
-    constraint = depositor_asset_account.mint == pool.settings.asset,
-    constraint = depositor_asset_account.owner == depositor.key(),
-  )]
-  pub depositor_asset_account: Account<'info, TokenAccount>,
-
-  #[account(
-    init_if_needed,
-    seeds = [
-      b"user_stats".as_ref(),
-      &pool.key().as_ref(),
-      &recipient.key().as_ref(),
-    ],
-    payer = depositor,
-    space = 8 + 32 + 32 + 8 + 8 + 1,
-    bump
-  )]
-  pub buyer_stats: Box<Account<'info, UserStats>>,
-
   pub lbp_manager_info: Account<'info, LBPManagerInfo>,
+
+  #[account(mut)]
+  pub pool_share_vault: Account<'info, TokenAccount>,
+
+  #[account(mut)]
+  pub pool_asset_vault: Account<'info, TokenAccount>,
+
+  /// CHECK: This is not dangerous because we don't read or write from this account
+  #[account(
+    mut,
+    constraint = depositor_asset_vault.mint == pool.settings.asset,
+    constraint = depositor_asset_vault.owner == depositor.key(),
+  )]
+  pub depositor_asset_vault: Account<'info, TokenAccount>,
+
+  #[account(mut)]
+  pub buyer_stats: Box<Account<'info, UserStats>>,
 
   pub token_program: Program<'info, Token>,
   pub rent: Sysvar<'info, Rent>,
@@ -78,8 +61,8 @@ pub fn handler(
   let lbp_manager_info = &mut ctx.accounts.lbp_manager_info;
   let buyer_stats = &mut ctx.accounts.buyer_stats;
 
-  let assets: u64 = ctx.accounts.pool_assets_account.amount;
-  let shares: u64 = ctx.accounts.pool_shares_account.amount;
+  let assets: u64 = ctx.accounts.pool_asset_vault.amount;
+  let shares: u64 = ctx.accounts.pool_share_vault.amount;
   
   let swap_fee: u64 = assets_in * (lbp_manager_info.swap_fee / 1_000_000_000);
   pool.total_swap_fees_asset += swap_fee;
@@ -99,15 +82,12 @@ pub fn handler(
     return err!(ErrorCode::MaxAssetsInExceeded);
   }
 
-  let from = ctx.accounts.depositor_asset_account.to_account_info();
-  let to = ctx.accounts.pool_assets_account.to_account_info();
-
   token::transfer(
     CpiContext::new(
         ctx.accounts.token_program.to_account_info(),
         Transfer {
-            from: ctx.accounts.depositor_asset_account.to_account_info(),
-            to: ctx.accounts.pool_assets_account.to_account_info(),
+            from: ctx.accounts.depositor_asset_vault.to_account_info(),
+            to: ctx.accounts.pool_asset_vault.to_account_info(),
             authority: ctx.accounts.depositor.to_account_info(),
         },
     ),

@@ -30,6 +30,7 @@ pub struct Redeem<'info> {
     #[account(mut)]
     pub buyer_stats: Box<Account<'info, UserStats>>,
 
+    #[account(mut)]
     pub recipient_share_vault: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,
@@ -41,41 +42,38 @@ pub struct Redeem<'info> {
 pub fn handler(
     ctx: Context<Redeem>,
 ) -> Result<()> {  
-    // let pool = &mut ctx.accounts.pool;
-    // let buyer_stats = &mut ctx.accounts.buyer_stats;
+    let buyer_stats = &mut ctx.accounts.buyer_stats;
 
-    // if !pool.closed {
-    //     return err!(ErrorCode::RedeemingDisallowed);
-    // }
+    if !ctx.accounts.pool.closed {
+        return err!(ErrorCode::RedeemingDisallowed);
+    }
 
-    // let vest_end = pool.settings.vest_end;
-    // let vest_cliff = pool.settings.vest_cliff;
-    // let sale_end = pool.settings.sale_end;
-    // let vest_shares = sale_end < vest_end;
+    let vest_end = ctx.accounts.pool.settings.vest_end;
+    let vest_cliff = ctx.accounts.pool.settings.vest_cliff;
+    let sale_end = ctx.accounts.pool.settings.sale_end;
+    let vest_shares = sale_end < vest_end;
 
-    // let curr_timestamp = Clock::get()?.unix_timestamp as u64;
+    let curr_timestamp = Clock::get()?.unix_timestamp as u64;
     
-    // let mut claimable: u64;
-    // let claimed = buyer_stats.claimed;
-    // if vest_shares && vest_end > curr_timestamp {
-    //     let shares = buyer_stats.purchased;
-    //     // if not reached vest cliff, no shares can be claimed
-    //     if curr_timestamp < vest_cliff {
-    //         claimable = 0;
-    //     // other wise distribute shares linearly
-    //     } else {
-    //         claimable = shares * (curr_timestamp - vest_cliff) / (vest_end - vest_cliff);
-    //         claimable -= claimed;
-    //     }
-    // } else {
-    //     claimable = buyer_stats.purchased - claimed;
-    // }
+    let mut claimable: u64;
+    let claimed = buyer_stats.claimed;
+    if vest_shares && vest_end > curr_timestamp {
+        let shares = buyer_stats.purchased;
+        // if not reached vest cliff, no shares can be claimed
+        if curr_timestamp < vest_cliff {
+            claimable = 0;
+        // other wise distribute shares linearly
+        } else {
+            claimable = shares * (curr_timestamp - vest_cliff) / (vest_end - vest_cliff);
+            claimable -= claimed;
+        }
+    } else {
+        claimable = buyer_stats.purchased - claimed;
+    }
 
-    // if claimable == 0 {
-    //     return err!(ErrorCode::NoSharesToClaim);
-    // }
-
-    let claimable = 1;
+    if claimable == 0 {
+        return err!(ErrorCode::NoSharesToClaim);
+    }
 
     let seeds = &[
       b"share".as_ref(),
@@ -94,16 +92,16 @@ pub fn handler(
             },
             signer,
         ),
-        ctx.accounts.share_vault.amount,
+        claimable,
     )?;
     
-    // buyer_stats.claimed += claimable;
+    buyer_stats.claimed += claimable;
 
-    // emit!(Redeemed {
-    //     recipient: recipient,
-    //     shares: claimable,
-    //     total_claimed: buyer_stats.claimed
-    // });
+    emit!(Redeemed {
+        recipient: ctx.accounts.recipient_share_vault.to_account_info().key().clone(),
+        shares: claimable,
+        total_claimed: buyer_stats.claimed
+    });
 
     Ok(())
 }

@@ -134,7 +134,8 @@ describe.only("exp", () => {
         mint: anchor.web3.PublicKey,
         owner: anchor.web3.PublicKey,
         lamports?: number
-      ): Promise<anchor.web3.TransactionInstruction[]> {
+    
+    ): Promise<anchor.web3.TransactionInstruction[]> {
         if (lamports === undefined) {
           lamports = await provider.connection.getMinimumBalanceForRentExemption(165);
         }
@@ -207,22 +208,75 @@ describe.only("exp", () => {
     const closePool = async (
         pool, 
         assetVault, 
+        assetVaultAuthority,
         shareVault, 
         shareVaultAuthority,
-        managerShareVault
+        managerShareVault,
+        feeShareVault,
+        feeAssetVault,
+        lbpManagerPda
     ) => {
         
         await program.methods.close().accounts({
             pool: pool,
             assetVault,
+            assetVaultAuthority,
             shareVault,
             shareVaultAuthority,
             managerShareVault,
+            feeAssetVault,
+            feeShareVault,
+            lbpManagerInfo: lbpManagerPda,
             
             tokenProgram: splToken.TOKEN_PROGRAM_ID,
             systemProgram: anchor.web3.SystemProgram.programId,
         })
         .rpc()
+    };
+
+    const swapExactAssetsForShares = async (
+        assetsIn, 
+        pool,
+        buyer,
+        shareVault,
+        assetVault,
+        depositorAssetVault,
+        lbpManagerPda,
+        buyerStats
+
+    ) => {
+        let buyEvent = null;
+        const id = program.addEventListener("Buy", (event, slot) => {
+          buyEvent = event;
+        });
+    
+        await program.methods
+          .swapExactAssetsForShares(buyer.publicKey, assetsIn, BN_0)
+          .accounts({
+            depositor: buyer.publicKey,
+            pool: pool.publicKey,
+            lbpManagerInfo: lbpManagerPda,
+            poolShareVault: shareVault,
+            poolAssetVault: assetVault,
+            depositorAssetVault: depositorAssetVault,
+            // depositorAssetVaultAuthority,
+            buyerStats,
+
+            tokenProgram: splToken.TOKEN_PROGRAM_ID,
+            rent: SYSVAR_RENT_PUBKEY,
+            systemProgram: anchor.web3.SystemProgram.programId,
+          })
+          .signers([buyer])
+          .rpc();
+    
+        if (buyEvent) {
+          program.removeEventListener(id);
+          const sharesOut = buyEvent.shares;
+          return { sharesOut };
+        } else {
+          program.removeEventListener(id);
+          expect.fail("Buy event not emitted");
+        }
     };
 
     const createBuyerStats = async (
@@ -264,6 +318,7 @@ describe.only("exp", () => {
         );
 
         const buyer = anchor.web3.Keypair.generate();
+        await fund(buyer.publicKey);
 
         const pool = anchor.web3.Keypair.generate();
         const assetVault = anchor.web3.Keypair.generate();
@@ -273,11 +328,40 @@ describe.only("exp", () => {
             shareMint,
             provider.wallet.publicKey
         );
+        const feeAssetVault = await createTokenAccount(
+            provider,
+            assetMint,
+            provider.wallet.publicKey
+        );
+        const feeShareVault = await createTokenAccount(
+            provider,
+            shareMint,
+            provider.wallet.publicKey
+        );
         const redeemRecipientShareVault = await createTokenAccount(
             provider,
             shareMint,
             provider.wallet.publicKey
         );
+
+        
+        // create user
+        const buyerAssetVault = await createTokenAccount(
+            provider,
+            assetMint,
+            buyer.publicKey
+        );
+        
+        const tx = new anchor.web3.Transaction();
+        tx.add(
+            splToken.createMintToInstruction(
+                assetMint,
+                buyerAssetVault,
+                provider.wallet.publicKey,
+                20_000_000 * SOL.toNumber()
+            )
+        )
+        await provider.sendAndConfirm(tx, []);
 
         let [assetVaultAuthority, assetVaultNonce] =
             anchor.web3.PublicKey.findProgramAddressSync(
@@ -340,19 +424,8 @@ describe.only("exp", () => {
             ])
             .rpc();
 
-            
         
-        // close the pool
-        
-        await closePool(
-            pool.publicKey,
-            assetVault.publicKey,
-            shareVault.publicKey,
-            shareVaultAuthority,
-            managerShareVault,
-        );
-
-        // redeem
+        // swap 
 
         const buyerStats = new anchor.web3.Keypair();
 
@@ -370,6 +443,34 @@ describe.only("exp", () => {
             ]
         ).rpc();
 
+
+        const assetsIn = SOL;
+        const { sharesOut } = await swapExactAssetsForShares(
+            assetsIn,
+            pool,
+            buyer,
+            shareVault.publicKey,
+            assetVault.publicKey,
+            buyerAssetVault,
+            lbpManagerPda,
+            buyerStats.publicKey
+        );
+            
+        // close the pool
+        
+        await closePool(
+            pool.publicKey,
+            assetVault.publicKey,
+            assetVaultAuthority,
+            shareVault.publicKey,
+            shareVaultAuthority,
+            managerShareVault,
+            feeShareVault,
+            feeAssetVault,
+            lbpManagerPda
+        );
+
+        // redeem
         await program.methods.redeem(
         ).accounts({
             pool: pool.publicKey,
