@@ -23,7 +23,7 @@ import {
   swapExactAssetsForShares,
 } from "./utils";
 
-describe.only("Redeem And Close Tests", () => {
+describe("Redeem And Close Tests", () => {
   /* Settings */
   const managerId = new anchor.BN(200);
   const decimals = 6; // mint decimals
@@ -44,6 +44,10 @@ describe.only("Redeem And Close Tests", () => {
   let feeAssetVault;
   let feeShareVault;
   let redeemRecipientShareVault;
+
+  let depositor;
+  let depositorAssetVault;
+  let depositorShareVault;
 
   let poolId = managerId.clone();
 
@@ -86,6 +90,16 @@ describe.only("Redeem And Close Tests", () => {
     feeAssetVault = await createVault(assetMint);
     feeShareVault = await createVault(shareMint);
     redeemRecipientShareVault = await createVault(shareMint);
+
+    // prepare depositor account
+    const { 
+        user: _depositor, 
+        userAssetVault: _depositorAssetVault, 
+        userShareVault: _depositorShareVault 
+    } = await createUser(assetMint, shareMint);
+    depositor = _depositor;
+    depositorAssetVault = _depositorAssetVault;
+    depositorShareVault = _depositorShareVault;
   });
 
   it("should revert when pool not closed", async () => {
@@ -100,15 +114,7 @@ describe.only("Redeem And Close Tests", () => {
       assetVaultAuthority,
       shareVault,
       shareVaultAuthority,
-    } = await createPool(
-      poolId,
-      poolSettings,
-      assetGod,
-      shareGod,
-      lbpManagerPda,
-      assetMint,
-      shareMint
-    );
+    } = await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpManagerPda, assetMint, shareMint);
 
     const { userStats: buyerStats } = await createUserStats(
       pool.publicKey,
@@ -137,7 +143,7 @@ describe.only("Redeem And Close Tests", () => {
 
   // To make this test work, comment out the closing disallowed check in the program
   // Test validator doesnt allow warping time, need to move this test to
-  it("should redeem all after vest end", async () => {
+  it.skip("should redeem all after vest end", async () => {
     const poolSettings = await getDefaultPoolSettings(assetMint, shareMint);
     const now = await getNow();
     poolSettings.vestCliff = now.sub(ONE_DAY);
@@ -152,15 +158,7 @@ describe.only("Redeem And Close Tests", () => {
       assetVaultAuthority,
       shareVault,
       shareVaultAuthority,
-    } = await createPool(
-      poolId,
-      poolSettings,
-      assetGod,
-      shareGod,
-      lbpManagerPda,
-      assetMint,
-      shareMint
-    );
+    } = await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpManagerPda, assetMint, shareMint);
 
     // swap
     const { userStats: buyerStats } = await createUserStats(

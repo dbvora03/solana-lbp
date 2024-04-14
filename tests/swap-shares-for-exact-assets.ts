@@ -26,6 +26,10 @@ describe("swap shares for exact assets", () => {
   let feeShareVault;
   let redeemRecipientShareVault;
 
+  let depositor;
+  let depositorAssetVault;
+  let depositorShareVault;
+
   let poolId = managerId.clone();
 
   before(async () => {
@@ -67,6 +71,15 @@ describe("swap shares for exact assets", () => {
       feeAssetVault = await createVault(assetMint);
       feeShareVault = await createVault(shareMint);
       redeemRecipientShareVault = await createVault(shareMint);
+
+      const { 
+        user: _depositor, 
+        userAssetVault: _depositorAssetVault, 
+        userShareVault: _depositorShareVault 
+      } = await createUser(assetMint, shareMint);
+      depositor = _depositor;
+      depositorAssetVault = _depositorAssetVault;
+      depositorShareVault = _depositorShareVault;
   });
 
 
@@ -79,7 +92,7 @@ describe("swap shares for exact assets", () => {
       assetVaultAuthority,
       shareVault,
       shareVaultAuthority,
-    } = await createPool(poolId, poolSettings, assetGod, shareGod, lbpManagerPda, assetMint, shareMint);
+    } = await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpManagerPda, assetMint, shareMint);
 
     const assetsOut = SOL;
     let maxShares = await program.methods.previewSharesIn(

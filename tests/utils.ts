@@ -205,8 +205,9 @@ export const initialize = async (
 export const createPool = async (
     poolId: anchor.BN,
     poolSettings: any,
-    assetGod: anchor.web3.PublicKey,
-    shareGod: anchor.web3.PublicKey,
+    depositorAssetVault: anchor.web3.PublicKey,
+    depositorShareVault: anchor.web3.PublicKey,
+    depositor: anchor.web3.Keypair,
     lbpManagerPda: anchor.web3.PublicKey,
     assetMint: anchor.web3.PublicKey,
     shareMint: anchor.web3.PublicKey,
@@ -229,6 +230,24 @@ export const createPool = async (
             program.programId
     );
 
+    const tx = new anchor.web3.Transaction();
+    tx.add(
+        await program.account.pool.createInstruction(pool),
+        ...(await createTokenAccountInstrs(
+            provider,
+            assetVault.publicKey,
+            assetMint,
+            assetVaultAuthority
+        )),
+        ...(await createTokenAccountInstrs(
+            provider,
+            shareVault.publicKey,
+            shareMint,
+            shareVaultAuthority
+        )),
+    )
+    await provider.sendAndConfirm(tx, [pool, assetVault, shareVault]);
+
     await program.methods
         .createPool(
             poolSettings, 
@@ -242,31 +261,15 @@ export const createPool = async (
             pool: pool.publicKey,
             assetVault: assetVault.publicKey,
             shareVault: shareVault.publicKey,
-            assetDepositor: assetGod,
-            assetDepositorAuthority: provider.wallet.publicKey,
-            shareDepositor: shareGod,
-            shareDepositorAuthority: provider.wallet.publicKey,
+            depositorAssetVault: depositorAssetVault,
+            depositorShareVault: depositorShareVault,
+            depositor: depositor.publicKey,
             lbpManagerInfo: lbpManagerPda,
             tokenProgram: splToken.TOKEN_PROGRAM_ID,
             rent: SYSVAR_RENT_PUBKEY,
             systemProgram: anchor.web3.SystemProgram.programId,
         })
-        .signers([pool, assetVault, shareVault])
-        .preInstructions([
-            await program.account.pool.createInstruction(pool),
-            ...(await createTokenAccountInstrs(
-                provider,
-                assetVault.publicKey,
-                assetMint,
-                assetVaultAuthority
-            )),
-            ...(await createTokenAccountInstrs(
-                provider,
-                shareVault.publicKey,
-                shareMint,
-                shareVaultAuthority
-            )),
-        ])
+        .signers([depositor])
         .rpc();
     
     return {

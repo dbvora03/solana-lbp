@@ -19,6 +19,10 @@ describe("swap assets for exact shares", () => {
   let buyerAssetVault;
   let buyerShareVault;
 
+  let depositor;
+  let depositorAssetVault;
+  let depositorShareVault;
+
   let lbpManagerPda;
 
   let managerShareVault;
@@ -67,6 +71,15 @@ describe("swap assets for exact shares", () => {
       feeAssetVault = await createVault(assetMint);
       feeShareVault = await createVault(shareMint);
       redeemRecipientShareVault = await createVault(shareMint);
+
+      const { 
+        user: _depositor, 
+        userAssetVault: _depositorAssetVault, 
+        userShareVault: _depositorShareVault 
+      } = await createUser(assetMint, shareMint);
+      depositor = _depositor;
+      depositorAssetVault = _depositorAssetVault;
+      depositorShareVault = _depositorShareVault;
   });
   
   it("test swap assets for exact shares 5", async () => {
@@ -78,7 +91,7 @@ describe("swap assets for exact shares", () => {
       assetVaultAuthority,
       shareVault,
       shareVaultAuthority,
-    } = await createPool(poolId, poolSettings, assetGod, shareGod, lbpManagerPda, assetMint, shareMint);
+    } = await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpManagerPda, assetMint, shareMint);
 
     const sharesOut = SOL;
     let maxAssetsIn = await program.methods.previewAssetsIn(
@@ -148,7 +161,7 @@ describe("swap assets for exact shares", () => {
       assetVaultAuthority,
       shareVault,
       shareVaultAuthority,
-    } = await createPool(poolId, poolSettings, assetGod, shareGod, lbpManagerPda, assetMint, shareMint);
+    } = await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpManagerPda, assetMint, shareMint);
 
     const sharesOut = SOL;
     let maxAssetsIn = await program.methods.previewAssetsIn(
@@ -256,119 +269,5 @@ describe("swap assets for exact shares", () => {
 
     program.removeEventListener(id);
   });
-    
-
-  // it("test second swap", async () => {
-  //   const poolId = new anchor.BN(202);
-  //   const poolAccountAddress = await get_pool_account_address(poolId);
-  //   const poolSettings = await getDefaultPoolSettings();
-  //   await create_pool(poolSettings, poolId);
-  //   await setUp(poolAccountAddress);
-
-  //   const sharesOut = SOL;
-  //   let maxAssetsIn = await program.methods.previewAssetsIn(
-  //     sharesOut
-  //   )
-  //   .accounts({
-  //     pool: poolAccountAddress,
-  //     poolAssetsAccount: poolAssetKp.publicKey,
-  //     poolSharesAccount: poolShareKp.publicKey,
-  //     lbpManagerInfo: lbpManagerPda,
-  //   })
-  //   .view();
-
-  //   let buyEvent = null;
-  //   const id = program.addEventListener('Buy', (event, slot) => {
-  //     buyEvent = event;
-  //   });
-
-  //   let swapFees = await getSwapFees();
-  //   swapFees = maxAssetsIn.mul(swapFees);
-  //   maxAssetsIn = maxAssetsIn.add(swapFees);
-
-  //   await program.methods.swapAssetsForExactShares(
-  //     alice.publicKey,
-  //     sharesOut,
-  //     maxAssetsIn,
-  //   ).accounts({
-  //     depositor: alice.publicKey,
-  //     pool: poolAccountAddress,
-  //     poolAssetsAccount: poolAssetKp.publicKey,
-  //     poolSharesAccount: poolShareKp.publicKey,
-  //     depositorAssetsAccount: depositorAssetTokenAccount,
-  //     buyerStats: buyerStatsPda,
-  //     lbpManagerInfo: lbpManagerPda,
-  //     tokenProgram: splToken.TOKEN_PROGRAM_ID,
-  //     rent: SYSVAR_RENT_PUBKEY,
-  //     systemProgram: anchor.web3.SystemProgram.programId,
-  //   })
-  //   .signers([alice])
-  //   .rpc();
-
-  //   let assetsIn1;
-  //   let sharesOut1;
-
-  //   if (buyEvent) {
-  //     assetsIn1 = buyEvent.assets;
-  //     sharesOut1 = buyEvent.shares;
-  //   } else {
-  //     expect.fail('Buy event not emitted');
-  //   }
-
-  //   let maxAssetsIn2 = await program.methods.previewAssetsIn(
-  //     sharesOut
-  //   )
-  //   .accounts({
-  //     pool: poolAccountAddress,
-  //     poolAssetsAccount: poolAssetKp.publicKey,
-  //     poolSharesAccount: poolShareKp.publicKey,
-  //     lbpManagerInfo: lbpManagerPda,
-  //   })
-  //   .view();
-
-  //   let swapFees2 = await getSwapFees();
-  //   swapFees2 = maxAssetsIn2.mul(swapFees2);
-  //   maxAssetsIn2 = maxAssetsIn2.add(swapFees2);
-
-  //   await program.methods.swapAssetsForExactShares(
-  //     alice.publicKey,
-  //     sharesOut,
-  //     maxAssetsIn2,
-  //   ).accounts({
-  //     depositor: alice.publicKey,
-  //     pool: poolAccountAddress,
-  //     poolAssetsAccount: poolAssetKp.publicKey,
-  //     poolSharesAccount: poolShareKp.publicKey,
-  //     depositorAssetsAccount: depositorAssetTokenAccount,
-  //     buyerStats: buyerStatsPda,
-  //     lbpManagerInfo: lbpManagerPda,
-  //     tokenProgram: splToken.TOKEN_PROGRAM_ID,
-  //     rent: SYSVAR_RENT_PUBKEY,
-  //     systemProgram: anchor.web3.SystemProgram.programId,
-  //   })
-  //   .signers([alice])
-  //   .rpc();
-
-  //   if (buyEvent) {
-  //     const assetsIn2 = buyEvent.assets;
-  //     const sharesOut2 = buyEvent.shares;
-
-  //     const poolAssetAmount = (await provider.connection.getTokenAccountBalance(poolAssetKp.publicKey)).value.amount;
-  //     assert.ok(poolAssetAmount == new anchor.BN(assetsIn1).add(defaultInitialAssetAmount).add(assetsIn2).toString(), "assetsIn");
-  //     assert.ok(maxAssetsIn2.toString() == assetsIn2, "assetsIn");
-
-  //     const lbpAccount = await program.account.pool.fetch(poolAccountAddress);
-  //     assert.ok(lbpAccount.totalPurchased.toString() == sharesOut1.add(sharesOut2).toString(), "totalPurchased");
-
-  //     const buyerStats = await program.account.userStats.fetch(buyerStatsPda);
-  //     assert.ok(buyerStats.purchased.toString() == sharesOut1.add(sharesOut2).toString(), "purchased");
-  //   } else {
-  //     expect.fail('Buy event not emitted');
-  //   }
-
-  //   program.removeEventListener(id);
-
-  // });
-  
 
 });

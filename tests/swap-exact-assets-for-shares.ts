@@ -19,6 +19,10 @@ let buyer;
 let buyerAssetVault;
 let buyerShareVault;
 
+let depositor;
+let depositorAssetVault;
+let depositorShareVault;
+
 let lbpManagerPda;
 
 let managerShareVault;
@@ -67,6 +71,15 @@ beforeEach(async () => {
     feeAssetVault = await createVault(assetMint);
     feeShareVault = await createVault(shareMint);
     redeemRecipientShareVault = await createVault(shareMint);
+
+    const { 
+      user: _depositor, 
+      userAssetVault: _depositorAssetVault, 
+      userShareVault: _depositorShareVault 
+    } = await createUser(assetMint, shareMint);
+    depositor = _depositor;
+    depositorAssetVault = _depositorAssetVault;
+    depositorShareVault = _depositorShareVault;
   });
 
 
@@ -80,7 +93,7 @@ beforeEach(async () => {
       assetVaultAuthority,
       shareVault,
       shareVaultAuthority,
-    } = await createPool(poolId, poolSettings, assetGod, shareGod, lbpManagerPda, assetMint, shareMint);
+    } = await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpManagerPda, assetMint, shareMint);
 
     const assetsIn = SOL;
     let minSharesOut = await program.methods.previewSharesOut(
@@ -149,7 +162,7 @@ beforeEach(async () => {
       assetVaultAuthority,
       shareVault,
       shareVaultAuthority,
-    } = await createPool(poolId, poolSettings, assetGod, shareGod, lbpManagerPda, assetMint, shareMint);
+    } = await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpManagerPda, assetMint, shareMint);
 
     const assetsIn = SOL;
     let minSharesOut = await program.methods.previewSharesOut(

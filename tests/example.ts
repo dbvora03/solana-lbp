@@ -5,7 +5,7 @@ import { describe } from "mocha";
 import { LiquidityBootstrapFjord } from "../target/types/liquidity_bootstrap_fjord";
 import { Program } from "@coral-xyz/anchor";
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
-import { SOL, createMintAndVault, createUser, createUserStats } from "./utils";
+import { SOL, closePool, createMintAndVault, createUser, createUserStats, createVault } from "./utils";
 
 interface PoolSettings {
   asset: anchor.web3.PublicKey;
@@ -499,6 +499,11 @@ describe.only("lbp-examples", async () => {
     // Create User Stats
     const { userStats: depositorUserStats } = await createUserStats(pool.publicKey, depositor);
 
+    // Create Token Accounts
+    const managerShareVault = await createVault(shareMint);
+    const feeAssetVault = await createVault(assetMint);
+    const feeShareVault = await createVault(shareMint);
+
     // Get pool info
     const poolInfo = await getPool(program, pool.publicKey);
 
@@ -523,9 +528,20 @@ describe.only("lbp-examples", async () => {
 
     // Swap Shares for Exact Assets
 
-    
-
     // Get User stats
     const depositorUserStatsInfo = await getUserStats(program, depositorUserStats);
+
+    // Close Pool
+    await closePool(
+      pool.publicKey,
+      assetVault.publicKey,
+      assetVaultAuthority,
+      shareVault.publicKey,
+      shareVaultAuthority,
+      managerShareVault,
+      feeShareVault,
+      feeAssetVault,
+      lbpManagerPda
+    );
   });
 });

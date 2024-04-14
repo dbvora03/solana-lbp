@@ -16,15 +16,18 @@ pub struct CreatePool<'info> {
   #[account(mut)]
   pub share_vault: Account<'info, TokenAccount>,
 
-  /// CHECK: This is not dangerous because we don't read or write from this account
-  #[account(mut)]
-  pub asset_depositor: AccountInfo<'info>,
-  pub asset_depositor_authority: Signer<'info>,
+  #[account(
+    mut,
+    constraint = depositor_asset_vault.mint == asset_vault.mint,
+    constraint = depositor_asset_vault.owner == depositor.key(),
+  )]
+  pub depositor_asset_vault: Account<'info, TokenAccount>,
 
-  /// CHECK: This is not dangerous because we don't read or write from this account
   #[account(mut)]
-  pub share_depositor: AccountInfo<'info>,
-  pub share_depositor_authority: Signer<'info>,
+  pub depositor_share_vault: Account<'info, TokenAccount>,
+  
+  #[account(mut)]
+  pub depositor: Signer<'info>,
 
   pub lbp_manager_info: Account<'info, LBPManagerInfo>,
 
@@ -92,9 +95,9 @@ pub fn handler(
     CpiContext::new(
         ctx.accounts.token_program.to_account_info(),
         Transfer {
-            from: ctx.accounts.asset_depositor.to_account_info(),
+            from: ctx.accounts.depositor_asset_vault.to_account_info(),
             to: ctx.accounts.asset_vault.to_account_info(),
-            authority: ctx.accounts.asset_depositor_authority.to_account_info(),
+            authority: ctx.accounts.depositor.to_account_info(),
         },
     ),
     assets,
@@ -104,9 +107,9 @@ pub fn handler(
     CpiContext::new(
         ctx.accounts.token_program.to_account_info(),
         Transfer {
-            from: ctx.accounts.share_depositor.clone(),
+            from: ctx.accounts.depositor_share_vault.to_account_info(),
             to: ctx.accounts.share_vault.to_account_info(),
-            authority: ctx.accounts.share_depositor_authority.to_account_info().clone(),
+            authority: ctx.accounts.depositor.to_account_info().clone(),
         },
     ),
     shares,
