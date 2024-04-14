@@ -6,6 +6,7 @@ import { LiquidityBootstrapFjord } from "../target/types/liquidity_bootstrap_fjo
 import { Program } from "@coral-xyz/anchor";
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
 import { SOL, closePool, createMintAndVault, createUser, createUserStats, createVault } from "./utils";
+import { program } from "@coral-xyz/anchor/dist/cjs/native/system";
 
 interface PoolSettings {
   asset: anchor.web3.PublicKey;
@@ -222,8 +223,9 @@ const createPool = async (
   provider: anchor.AnchorProvider,
   poolId: anchor.BN,
   poolSettings: any,
-  assetGod: anchor.web3.PublicKey,
-  shareGod: anchor.web3.PublicKey,
+  depositorAssetVault: anchor.web3.PublicKey,
+  depositorShareVault: anchor.web3.PublicKey,
+  depositor: anchor.web3.Keypair,
   lbpManagerPda: anchor.web3.PublicKey,
   assetMint: anchor.web3.PublicKey,
   shareMint: anchor.web3.PublicKey,
@@ -246,6 +248,24 @@ const createPool = async (
           program.programId
   );
 
+  const tx = new anchor.web3.Transaction();
+  tx.add(
+      await program.account.pool.createInstruction(pool),
+      ...(await createTokenAccountInstrs(
+          provider,
+          assetVault.publicKey,
+          assetMint,
+          assetVaultAuthority
+      )),
+      ...(await createTokenAccountInstrs(
+          provider,
+          shareVault.publicKey,
+          shareMint,
+          shareVaultAuthority
+      )),
+  )
+  await provider.sendAndConfirm(tx, [pool, assetVault, shareVault]);
+
   await program.methods
       .createPool(
           poolSettings, 
@@ -259,31 +279,15 @@ const createPool = async (
           pool: pool.publicKey,
           assetVault: assetVault.publicKey,
           shareVault: shareVault.publicKey,
-          assetDepositor: assetGod,
-          assetDepositorAuthority: provider.wallet.publicKey,
-          shareDepositor: shareGod,
-          shareDepositorAuthority: provider.wallet.publicKey,
+          depositorAssetVault: depositorAssetVault,
+          depositorShareVault: depositorShareVault,
+          depositor: depositor.publicKey,
           lbpManagerInfo: lbpManagerPda,
           tokenProgram: splToken.TOKEN_PROGRAM_ID,
           rent: SYSVAR_RENT_PUBKEY,
           systemProgram: anchor.web3.SystemProgram.programId,
       })
-      .signers([pool, assetVault, shareVault])
-      .preInstructions([
-          await program.account.pool.createInstruction(pool),
-          ...(await createTokenAccountInstrs(
-              provider,
-              assetVault.publicKey,
-              assetMint,
-              assetVaultAuthority
-          )),
-          ...(await createTokenAccountInstrs(
-              provider,
-              shareVault.publicKey,
-              shareMint,
-              shareVaultAuthority
-          )),
-      ])
+      .signers([depositor])
       .rpc();
   
   return {
@@ -393,9 +397,9 @@ describe.only("lbp-examples", async () => {
     userAssetVault: _depositorAssetVault, 
     userShareVault: _depositorShareVault 
   } = await createUser(assetMint, shareMint);
-  const depositor = _depositor;
-  const depositorAccountAsset = _depositorAssetVault;
-  const depositorAccountShare = _depositorShareVault;
+  let depositor = _depositor;
+  let depositorAssetVault = _depositorAssetVault;
+  let depositorShareVault = _depositorShareVault;
 
   const fee_recipient = provider.wallet.publicKey;
 
@@ -487,8 +491,9 @@ describe.only("lbp-examples", async () => {
       provider,
       new anchor.BN(1),
       settings,
-      assetGod,
-      shareGod,
+      depositorAssetVault, 
+      depositorShareVault,
+      depositor,
       lbpManagerPda,
       assetMint,
       shareMint,
@@ -507,6 +512,19 @@ describe.only("lbp-examples", async () => {
     // Get pool info
     const poolInfo = await getPool(program, pool.publicKey);
 
+    // Preiview Assets In
+    const sharesOut = SOL;
+    let maxAssetsIn = await program.methods.previewAssetsIn(
+      sharesOut
+    )
+    .accounts({
+      pool: pool.publicKey,
+      poolAssetsAccount: assetVault.publicKey,
+      poolSharesAccount: shareVault.publicKey,
+      lbpManagerInfo: lbpManagerPda,
+    })
+    .view();
+
     // Swap Assets for Exact Shares
     const txSAES = await swapAssetsForExactShares({
       program,
@@ -518,15 +536,9 @@ describe.only("lbp-examples", async () => {
       lbpManagerPda,
       poolAssetsAccount: poolAssetKp.publicKey,
       poolSharesAccount: poolShareKp.publicKey,
-      depositorAssetsAccount: depositorAccountAsset,
+      depositorAssetsAccount: depositorAssetVault,
       depositorUserStats,
     });
-
-    // Swap Shares for Exact Assets
-
-    // Swap Assets for Exact Shares
-
-    // Swap Shares for Exact Assets
 
     // Get User stats
     const depositorUserStatsInfo = await getUserStats(program, depositorUserStats);
