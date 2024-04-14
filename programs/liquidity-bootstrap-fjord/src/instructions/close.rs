@@ -61,10 +61,10 @@ pub fn handler(ctx: Context<Close>) -> Result<()> {
     return err!(ErrorCode::ClosingDisallowed);
   }
 
-  // let unix_timestamp = match Clock::get() {
-  //   Ok(clock) => clock.unix_timestamp,
-  //   Err(_) => return err!(ErrorCode::ClockError),
-  // };
+  let unix_timestamp = match Clock::get() {
+    Ok(clock) => clock.unix_timestamp,
+    Err(_) => return err!(ErrorCode::ClockError),
+  };
 
   // if (unix_timestamp as i128) < (ctx.accounts.pool.settings.sale_end as i128) {
   //   return err!(ErrorCode::ClosingDisallowed);

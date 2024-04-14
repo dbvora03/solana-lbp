@@ -265,7 +265,6 @@ const createPool = async ({
       initialAssetAmount
     )
     .accounts({
-      depositor: depositor.publicKey,
       assetMint,
       shareMint,
       depositorAccountAsset,
