@@ -5,7 +5,7 @@ import { SYSVAR_RENT_PUBKEY } from "@solana/web3.js";
 import { ONE_DAY, SOL, closePool, createMintAndVault, createPool, createUser, createUserStats, createVault, defaultInitialAssetAmount, defaultInitialShareAmount, fund, getDefaultPoolSettings, getNow, initialize, program, provider, swapExactAssetsForShares } from "./utils";
 
 
-describe.only("Redeem Tests", () => {
+describe("Redeem And Close Tests", () => {
     /* Settings */
     const managerId = new anchor.BN(800);
     const decimals = 6; // mint decimals

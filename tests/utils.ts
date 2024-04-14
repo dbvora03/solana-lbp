@@ -18,6 +18,7 @@ export const BN_0 = new anchor.BN(0);
 export const BN_1 = new anchor.BN(1);
 export const defaultInitialShareAmount = SOL.mul(new anchor.BN(1000));
 export const defaultInitialAssetAmount = SOL.mul(new anchor.BN(1000));
+export const ZERO_ADDRESS = new anchor.web3.PublicKey("11111111111111111111111111111111")
 
 /* Token Utils */
 
@@ -208,9 +209,11 @@ export const createPool = async (
     shareGod: anchor.web3.PublicKey,
     lbpManagerPda: anchor.web3.PublicKey,
     assetMint: anchor.web3.PublicKey,
-    shareMint: anchor.web3.PublicKey
+    shareMint: anchor.web3.PublicKey,
+    initialShareAmount: anchor.BN = defaultInitialShareAmount,
+    initialAssetAmount: anchor.BN = defaultInitialAssetAmount,
 ) => {
-    
+
     const pool = anchor.web3.Keypair.generate();
     const assetVault = anchor.web3.Keypair.generate();
     const shareVault = anchor.web3.Keypair.generate();
@@ -230,8 +233,8 @@ export const createPool = async (
         .createPool(
             poolSettings, 
             poolId, 
-            defaultInitialShareAmount, 
-            defaultInitialAssetAmount,
+            initialShareAmount, 
+            initialAssetAmount,
             shareVaultNonce,
             assetVaultNonce,
         )

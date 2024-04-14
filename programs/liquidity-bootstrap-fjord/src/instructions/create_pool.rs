@@ -67,7 +67,6 @@ pub fn handler(
     }
   }
 
-  msg!("settings.weight_start: {}, end: {}", settings.weight_start, settings.weight_end);
   if settings.weight_start < (0.01 * 1_000_000_000.0) as u64 || settings.weight_start > (0.99 * 1_000_000_000.0) as u64
     || settings.weight_end < (0.01 * 1_000_000_000.0) as u64 || settings.weight_end > (0.99 * 1_000_000_000.0) as u64 {
     return err!(ErrorCode::InvalidWeightConfig);
