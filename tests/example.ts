@@ -362,7 +362,7 @@ const swapAssetsForExactShares = async ({
   .rpc();
 };
 
-describe.only("lbp-examples", async () => {
+describe("lbp-examples", async () => {
   // Code to get Provider
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
