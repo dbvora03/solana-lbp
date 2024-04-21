@@ -121,11 +121,14 @@ export const fund = async (pubkey) => {
     });
 };
 
-export const createVault = async (mint) => {
+export const createVault = async (
+    mint,
+    owner = provider.wallet.publicKey
+) => {
     return await createTokenAccount(
         provider,
         mint,
-        provider.wallet.publicKey
+        owner
     );
 };
 
@@ -173,6 +176,8 @@ export const getDefaultPoolSettings = async (
 
 export const initialize = async (
     managerId: anchor.BN,
+    fee_recipient: anchor.web3.PublicKey,
+    lbpFactorySettingsAuthority: anchor.web3.Keypair
 ) => {
     const [lbpManagerPda] = anchor.web3.PublicKey.findProgramAddressSync(
         [
@@ -183,8 +188,6 @@ export const initialize = async (
     );
   
     // initialize pool factory
-    const fee_recipient = provider.wallet.publicKey;
-
     await program.methods
     .initialize(
         managerId,
@@ -194,9 +197,10 @@ export const initialize = async (
         new anchor.BN(1000)
     )
     .accounts({
-        authority: fee_recipient,
+        authority: lbpFactorySettingsAuthority.publicKey,
         lbpManagerInfo: lbpManagerPda,
     })
+    .signers([lbpFactorySettingsAuthority])
     .rpc();
     
     return lbpManagerPda;
@@ -294,9 +298,10 @@ export const closePool = async (
     assetVaultAuthority,
     shareVault, 
     shareVaultAuthority,
-    managerShareVault,
-    feeShareVault,
-    feeAssetVault,
+    poolOwnerAssetVault,
+    poolOwnerShareVault,
+    feeRecipientShareVault,
+    feeRecipientAssetVault,
     lbpManagerPda
 ) => {
     
@@ -306,9 +311,10 @@ export const closePool = async (
         assetVaultAuthority,
         shareVault,
         shareVaultAuthority,
-        managerShareVault,
-        feeAssetVault,
-        feeShareVault,
+        poolOwnerAssetVault,
+        poolOwnerShareVault,
+        feeRecipientAssetVault,
+        feeRecipientShareVault,
         lbpManagerInfo: lbpManagerPda,
         
         tokenProgram: splToken.TOKEN_PROGRAM_ID,
@@ -451,3 +457,13 @@ export const getNow = async () => {
     )   
     return now;
 };
+
+export const getVaultBalance = async (
+    vault: anchor.web3.PublicKey
+) => {
+    const accountInfo = await splToken.getAccount(
+        provider.connection,
+        vault
+    );
+    return new anchor.BN(accountInfo.amount.toString());
+}

@@ -21,6 +21,7 @@ pub struct PoolSettings {
 #[account]
 pub struct Pool {
   pub id: u64, // 8
+  pub owner: Pubkey, // 32
   pub lbp_manager: Pubkey, // 32
   pub settings: PoolSettings,
   pub initialized: bool, // 1
@@ -28,7 +29,6 @@ pub struct Pool {
   pub total_swap_fees_asset: u64, // 8
   pub total_swap_fees_share: u64, // 8
   pub total_purchased: u64, // 8
-  pub total_referred: u64, // 8
   pub share_vault_nonce: u8, // 1
   pub asset_vault_nonce: u8, // 1
 }

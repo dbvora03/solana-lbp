@@ -35,17 +35,35 @@ pub struct Close<'info> {
     bump = pool.share_vault_nonce,
   )]
   pub share_vault_authority: AccountInfo<'info>,
+
+  #[account(
+    mut,
+    constraint = pool_owner_asset_vault.owner == pool.owner
+  )]
+  pub pool_owner_asset_vault: Account<'info, TokenAccount>,
   
-  #[account(mut)]
-  pub manager_share_vault: Account<'info, TokenAccount>,
+  #[account(
+    mut,
+    constraint = pool_owner_share_vault.owner == pool.owner
+  )]
+  pub pool_owner_share_vault: Account<'info, TokenAccount>,
 
-  #[account(mut)]
-  pub fee_asset_vault: Account<'info, TokenAccount>,
+  #[account(
+    mut,
+    constraint = fee_recipient_asset_vault.owner == lbp_manager_info.fee_recipient
+  )]
+  pub fee_recipient_asset_vault: Account<'info, TokenAccount>,
 
-  #[account(mut)]
-  pub fee_share_vault: Account<'info, TokenAccount>,
+  #[account(
+    mut,
+    constraint = fee_recipient_share_vault.owner == lbp_manager_info.fee_recipient
+  )]
+  pub fee_recipient_share_vault: Account<'info, TokenAccount>,
 
-  #[account(mut)]
+  #[account(
+    mut,
+    constraint = pool.lbp_manager == lbp_manager_info.key()
+  )]
   pub lbp_manager_info: Account<'info, LBPManagerInfo>,
 
   pub token_program: Program<'info, Token>,
@@ -70,11 +88,12 @@ pub fn handler(ctx: Context<Close>) -> Result<()> {
   //   return err!(ErrorCode::ClosingDisallowed);
   // }
 
-  let pool_assets = assets - ctx.accounts.pool.total_swap_fees_asset;
-  let platform_fees = pool_assets * (lbp_manager_info.platform_fee / 1_000_000_000);
+  // 1. Calculation
+  let total_assets = assets - ctx.accounts.pool.total_swap_fees_asset;
+  let platform_fees = total_assets * (lbp_manager_info.platform_fee / 1_000_000_000);
+  let total_assets_minus_fees = total_assets - platform_fees;
 
-  let total_assets_minus_fees = pool_assets - platform_fees - ctx.accounts.pool.total_referred;
-
+  // 2. Transfer fees to fee recipient
   let asset_seeds = &[
       b"asset".as_ref(),
       ctx.accounts.pool.to_account_info().key.as_ref(),
@@ -89,60 +108,56 @@ pub fn handler(ctx: Context<Close>) -> Result<()> {
     ];
   let share_signer = &[&share_seeds[..]];
 
-  if pool_assets != 0 {
+  token::transfer(
+    CpiContext::new_with_signer(
+        ctx.accounts.token_program.to_account_info(),
+        Transfer {  
+            from: ctx.accounts.asset_vault.to_account_info(),
+            to: ctx.accounts.fee_recipient_asset_vault.to_account_info(),
+            authority: ctx.accounts.asset_vault_authority.to_account_info(),
+        },
+        asset_signer,
+    ),
+    platform_fees + ctx.accounts.pool.total_swap_fees_asset,
+  )?;
 
-    token::transfer(
-      CpiContext::new_with_signer(
-          ctx.accounts.token_program.to_account_info(),
-          Transfer {  
-              from: ctx.accounts.asset_vault.to_account_info(),
-              to: ctx.accounts.fee_asset_vault.to_account_info(),
-              authority: ctx.accounts.asset_vault_authority.to_account_info(),
-          },
-          asset_signer,
-      ),
-      platform_fees + 2 * ctx.accounts.pool.total_swap_fees_asset,
-    )?;
+  token::transfer(
+    CpiContext::new_with_signer(
+        ctx.accounts.token_program.to_account_info(),
+        Transfer {  
+            from: ctx.accounts.share_vault.to_account_info(),
+            to: ctx.accounts.fee_recipient_share_vault.to_account_info(), // fee reciever
+            authority: ctx.accounts.share_vault_authority.to_account_info(),
+        },
+        share_signer
+    ),
+    ctx.accounts.pool.total_swap_fees_share 
+  )?;
 
-    token::transfer(
-      CpiContext::new_with_signer(
-          ctx.accounts.token_program.to_account_info(),
-          Transfer {  
-              from: ctx.accounts.share_vault.to_account_info(),
-              to: ctx.accounts.fee_share_vault.to_account_info(), // fee reciever
-              authority: ctx.accounts.share_vault_authority.to_account_info(),
-          },
-          share_signer
-      ),
-      2 * ctx.accounts.pool.total_swap_fees_share // This is covering the overlap 
-    )?;
-
-    // This can be split up to use the percentage based allocation
-    // AKA the for loop in distributeFee
-    token::transfer(
-      CpiContext::new_with_signer(
-          ctx.accounts.token_program.to_account_info(),
-          Transfer {  
-              from: ctx.accounts.asset_vault.to_account_info(),
-              to: ctx.accounts.fee_asset_vault.to_account_info(),
-              authority: ctx.accounts.asset_vault_authority.to_account_info(),
-          },
-          asset_signer,
-      ),
-      platform_fees,
-    )?;
-  }
+  // 3. Transfer assets and unsold shares to pool owner
+  token::transfer(
+    CpiContext::new_with_signer(
+        ctx.accounts.token_program.to_account_info(),
+        Transfer {  
+            from: ctx.accounts.asset_vault.to_account_info(),
+            to: ctx.accounts.pool_owner_asset_vault.to_account_info(), // fee reciever
+            authority: ctx.accounts.asset_vault_authority.to_account_info(),
+        },
+        asset_signer
+    ),
+    total_assets_minus_fees,
+  )?;
 
   let unsold_shares = shares - ctx.accounts.pool.total_purchased;
 
-  if shares != 0 {
+  if unsold_shares != 0 {
 
     token::transfer(
       CpiContext::new_with_signer(
           ctx.accounts.token_program.to_account_info(),
           Transfer {  
               from: ctx.accounts.share_vault.to_account_info(),
-              to: ctx.accounts.manager_share_vault.to_account_info(),
+              to: ctx.accounts.pool_owner_share_vault.to_account_info(),
               authority: ctx.accounts.share_vault_authority.to_account_info(),
           },
           share_signer,

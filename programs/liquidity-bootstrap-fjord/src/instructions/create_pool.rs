@@ -80,6 +80,7 @@ pub fn handler(
   }
 
   pool.id = id;
+  pool.owner = *ctx.accounts.depositor.to_account_info().key;
   pool.lbp_manager = *ctx.accounts.lbp_manager_info.to_account_info().key;
   pool.settings = settings;
   pool.initialized = true;
@@ -87,7 +88,6 @@ pub fn handler(
   pool.total_swap_fees_asset = 0;
   pool.total_swap_fees_share = 0;
   pool.total_purchased = 0;
-  pool.total_referred = 0;
   pool.share_vault_nonce = share_vault_nonce;
   pool.asset_vault_nonce = asset_vault_nonce;
 
