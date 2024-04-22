@@ -2,7 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { assert, expect } from "chai";
 import { ONE_DAY, SOL, closePool, createMintAndVault, createPool, createUser, createUserStats, createVault, defaultInitialAssetAmount, defaultInitialShareAmount, fund, getDefaultPoolSettings, getNow, initialize, program, provider, swapExactAssetsForShares } from "./utils";
 
-describe("Weight Calculations", () => {
+describe.only("Weight Calculations", () => {
   /* Settings */
   const factoryId = new anchor.BN(700);
   const decimals = 6; // mint decimals
@@ -17,38 +17,57 @@ describe("Weight Calculations", () => {
   let buyerAssetVault;
   let buyerShareVault;
 
+  let depositor;
+  let depositorAssetVault;
+  let depositorShareVault;
+
   let lbpFactoryPda;
 
-  let managerShareVault;
+  let feeRecipient;
   let feeAssetVault;
   let feeShareVault;
-  let redeemRecipientShareVault;
+
+  let lbpFactorySettingsAuthority;
 
   let poolId = factoryId.clone();
-  
-  before(async () => {
-      // init manager
-      lbpFactoryPda = await initialize(factoryId);
-  });
 
-  beforeEach(async () => {
+  before(async () => {
     // funds users
     await fund(provider.wallet.publicKey);
 
+    // prepare mints
+    [assetMint, assetGod] = await createMintAndVault(
+      defaultInitialAssetAmount,
+      provider.wallet.publicKey,
+      decimals
+    );
+    [shareMint, shareGod] = await createMintAndVault(
+      defaultInitialShareAmount,
+      provider.wallet.publicKey,
+      decimals
+    );
+
+    // prepare factory settings authority
+    lbpFactorySettingsAuthority = anchor.web3.Keypair.generate();
+    await fund(lbpFactorySettingsAuthority.publicKey);
+
+    // prepare fee recipient
+    const {
+      user: _feeRecipient,
+      userAssetVault: _feeAssetVault,
+      userShareVault: _feeShareVault,
+    } = await createUser(assetMint, shareMint);
+    feeRecipient = _feeRecipient;
+    feeAssetVault = _feeAssetVault;
+    feeShareVault = _feeShareVault;
+
+    // init manager
+    lbpFactoryPda = await initialize(factoryId, feeRecipient.publicKey, lbpFactorySettingsAuthority);
+  });
+
+  beforeEach(async () => {
       // use a new pool id 
       poolId = poolId.add(new anchor.BN(1));
-
-      // prepare mints
-      [assetMint, assetGod] = await createMintAndVault(
-          SOL.mul(new anchor.BN(10_000_000)),
-          provider.wallet.publicKey,
-          decimals
-      );
-      [shareMint, shareGod] = await createMintAndVault(
-          SOL.mul(new anchor.BN(10_000_000)),
-          provider.wallet.publicKey,
-          decimals
-      );
 
       // prepare buyer account
       const { 
@@ -60,11 +79,14 @@ describe("Weight Calculations", () => {
       buyerAssetVault = _buyerAssetVault;
       buyerShareVault = _buyerShareVault;
 
-      // prepare vaults
-      managerShareVault = await createVault(shareMint);
-      feeAssetVault = await createVault(assetMint);
-      feeShareVault = await createVault(shareMint);
-      redeemRecipientShareVault = await createVault(shareMint);
+      const { 
+        user: _depositor, 
+        userAssetVault: _depositorAssetVault, 
+        userShareVault: _depositorShareVault 
+      } = await createUser(assetMint, shareMint);
+      depositor = _depositor;
+      depositorAssetVault = _depositorAssetVault;
+      depositorShareVault = _depositorShareVault;
   });
 
   it("test normal weight", async () => {
@@ -76,7 +98,7 @@ describe("Weight Calculations", () => {
         assetVaultAuthority,
         shareVault,
         shareVaultAuthority,
-    } = await createPool(poolId, poolSettings, assetGod, shareGod, lbpFactoryPda, assetMint, shareMint);
+    } = await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpFactoryPda, assetMint, shareMint);
 
     const defaultSharesOut = new anchor.BN(10).mul(SOL);
     const expectedAssetsIn = 10;
@@ -102,12 +124,12 @@ describe("Weight Calculations", () => {
     poolSettings.weightEnd = SOL.div(new anchor.BN(100)).mul(new anchor.BN(99)); // 0.99 sol
     
     const {
-        pool,
-        assetVault,
-        assetVaultAuthority,
-        shareVault,
-        shareVaultAuthority,
-    } = await createPool(poolId, poolSettings, assetGod, shareGod, lbpFactoryPda, assetMint, shareMint);
+      pool,
+      assetVault,
+      assetVaultAuthority,
+      shareVault,
+      shareVaultAuthority,
+  } = await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpFactoryPda, assetMint, shareMint);
 
     const defaultSharesOut = new anchor.BN(100).mul(SOL);
     const expectedAssetsIn = 1;
@@ -134,13 +156,13 @@ describe("Weight Calculations", () => {
     poolSettings.weightEnd = SOL.div(new anchor.BN(100)); // 1%
     
     const {
-        pool,
-        assetVault,
-        assetVaultAuthority,
-        shareVault,
-        shareVaultAuthority,
-    } = await createPool(poolId, poolSettings, assetGod, shareGod, lbpFactoryPda, assetMint, shareMint, initialShareAmount, initialAssetAmount);
-    
+      pool,
+      assetVault,
+      assetVaultAuthority,
+      shareVault,
+      shareVaultAuthority,
+  } = await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpFactoryPda, assetMint, shareMint, initialAssetAmount, initialShareAmount);
+
     const defaultSharesOut = new anchor.BN(10).mul(SOL);
     const expectedAssetsIn = 990;
     

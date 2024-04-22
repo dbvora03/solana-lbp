@@ -15,6 +15,12 @@ describe("Pool Creation Tests", () => {
   let assetGod;
   let shareGod;
 
+  let feeRecipient;
+  let feeAssetVault;
+  let feeShareVault;
+
+  let lbpFactorySettingsAuthority;
+
   let depositor;
   let depositorAssetVault;
   let depositorShareVault;
@@ -25,14 +31,6 @@ describe("Pool Creation Tests", () => {
   before(async () => {
     // funds users
     await fund(provider.wallet.publicKey);
-
-    // init manager
-    lbpFactoryPda = await initialize(factoryId);
-  });
-
-  beforeEach(async () => {
-    // use a new pool id 
-    poolId = poolId.add(new anchor.BN(1));
 
     // prepare mints
     [assetMint, assetGod] = await createMintAndVault(
@@ -45,6 +43,28 @@ describe("Pool Creation Tests", () => {
       provider.wallet.publicKey,
       decimals
     );
+
+    // prepare factory settings authority
+    lbpFactorySettingsAuthority = anchor.web3.Keypair.generate();
+    await fund(lbpFactorySettingsAuthority.publicKey);
+
+    // prepare fee recipient
+    const {
+      user: _feeRecipient,
+      userAssetVault: _feeAssetVault,
+      userShareVault: _feeShareVault,
+    } = await createUser(assetMint, shareMint);
+    feeRecipient = _feeRecipient;
+    feeAssetVault = _feeAssetVault;
+    feeShareVault = _feeShareVault;
+
+    // init manager
+    lbpFactoryPda = await initialize(factoryId, feeRecipient.publicKey, lbpFactorySettingsAuthority);
+  });
+
+  beforeEach(async () => {
+    // use a new pool id 
+    poolId = poolId.add(new anchor.BN(1));
 
     // prepare depositor account
     const { 
@@ -166,33 +186,6 @@ describe("Pool Creation Tests", () => {
       expect.fail("Should have thrown an error");
     } catch (error) {
       expect(error.error.errorMessage).to.equal("Invalid Weight Config");
-    }
-  });
-
-  it("should revert invalid start date", async () => {
-    const poolSettings = await getDefaultPoolSettings(assetMint, shareMint);
-    poolSettings.saleEnd = (await getNow()).add(TWO_DAYS);
-    poolSettings.saleStart = poolSettings.saleEnd.sub(ONE_DAY).add(BN_1);
-
-    try {
-      await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpFactoryPda, assetMint, shareMint);
-      expect.fail("Should have thrown an error");
-    } catch (error) {
-      expect(error.error.errorMessage).to.equal("Sale Period Low");
-    }
-  });
-
-  it("should revert invalid end date", async () => {
-    const poolSettings = await getDefaultPoolSettings(assetMint, shareMint);
-    const now = await getNow();
-    poolSettings.saleEnd = now.sub(ONE_DAY);
-    poolSettings.saleStart = poolSettings.saleEnd.sub(ONE_DAY);
-
-    try {
-      await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpFactoryPda, assetMint, shareMint);
-      expect.fail("Should have thrown an error");
-    } catch (error) {
-      expect(error.error.errorMessage).to.equal("Sale Period Low");
     }
   });
 

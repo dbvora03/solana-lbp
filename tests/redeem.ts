@@ -24,7 +24,7 @@ import {
   getVaultBalance
 } from "./utils";
 
-describe.only("Redeem And Close Tests", () => {
+describe("Redeem And Close Tests", () => {
   /* Settings */
   const factoryId = new anchor.BN(200);
   const decimals = 6; // mint decimals

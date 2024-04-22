@@ -19,69 +19,77 @@ describe("swap exact shares for assets", () => {
   let buyerAssetVault;
   let buyerShareVault;
 
-  let lbpFactoryPda;
-
-  let managerShareVault;
-  let feeAssetVault;
-  let feeShareVault;
-  let redeemRecipientShareVault;
-
   let depositor;
   let depositorAssetVault;
   let depositorShareVault;
 
-  let poolId = factoryId.clone();
+  let lbpFactoryPda;
 
-  before(async () => {
-    // funds users
-    await fund(provider.wallet.publicKey);
+  let feeRecipient;
+let feeAssetVault;
+let feeShareVault;
 
-    // init manager
-    lbpFactoryPda = await initialize(factoryId);
+let lbpFactorySettingsAuthority;
+
+let poolId = factoryId.clone();
+
+before(async () => {
+  // funds users
+  await fund(provider.wallet.publicKey);
+
+  // prepare mints
+  [assetMint, assetGod] = await createMintAndVault(
+    defaultInitialAssetAmount,
+    provider.wallet.publicKey,
+    decimals
+  );
+  [shareMint, shareGod] = await createMintAndVault(
+    defaultInitialShareAmount,
+    provider.wallet.publicKey,
+    decimals
+  );
+
+  // prepare factory settings authority
+  lbpFactorySettingsAuthority = anchor.web3.Keypair.generate();
+  await fund(lbpFactorySettingsAuthority.publicKey);
+
+  // prepare fee recipient
+  const {
+    user: _feeRecipient,
+    userAssetVault: _feeAssetVault,
+    userShareVault: _feeShareVault,
+  } = await createUser(assetMint, shareMint);
+  feeRecipient = _feeRecipient;
+  feeAssetVault = _feeAssetVault;
+  feeShareVault = _feeShareVault;
+
+  // init manager
+  lbpFactoryPda = await initialize(factoryId, feeRecipient.publicKey, lbpFactorySettingsAuthority);
+});
+
+beforeEach(async () => {
+    // use a new pool id 
+    poolId = poolId.add(new anchor.BN(1));
+
+    // prepare buyer account
+    const { 
+        user: _buyer, 
+        userAssetVault: _buyerAssetVault, 
+        userShareVault: _buyerShareVault 
+    } = await createUser(assetMint, shareMint);
+    buyer = _buyer;
+    buyerAssetVault = _buyerAssetVault;
+    buyerShareVault = _buyerShareVault;
+
+    const { 
+      user: _depositor, 
+      userAssetVault: _depositorAssetVault, 
+      userShareVault: _depositorShareVault 
+    } = await createUser(assetMint, shareMint);
+    depositor = _depositor;
+    depositorAssetVault = _depositorAssetVault;
+    depositorShareVault = _depositorShareVault;
   });
-
-  beforeEach(async () => {
-      // use a new pool id 
-      poolId = poolId.add(new anchor.BN(1));
-
-      // prepare mints
-      [assetMint, assetGod] = await createMintAndVault(
-          defaultInitialAssetAmount,
-          provider.wallet.publicKey,
-          decimals
-      );
-      [shareMint, shareGod] = await createMintAndVault(
-          defaultInitialShareAmount,
-          provider.wallet.publicKey,
-          decimals
-      );
-
-      // prepare buyer account
-      const { 
-          user: _buyer, 
-          userAssetVault: _buyerAssetVault, 
-          userShareVault: _buyerShareVault 
-      } = await createUser(assetMint, shareMint);
-      buyer = _buyer;
-      buyerAssetVault = _buyerAssetVault;
-      buyerShareVault = _buyerShareVault;
-
-      // prepare vaults
-      managerShareVault = await createVault(shareMint);
-      feeAssetVault = await createVault(assetMint);
-      feeShareVault = await createVault(shareMint);
-      redeemRecipientShareVault = await createVault(shareMint);
-
-      const { 
-        user: _depositor, 
-        userAssetVault: _depositorAssetVault, 
-        userShareVault: _depositorShareVault 
-      } = await createUser(assetMint, shareMint);
-      depositor = _depositor;
-      depositorAssetVault = _depositorAssetVault;
-      depositorShareVault = _depositorShareVault;
-  });
-
 
   it("test slippage too high", async () => {
     const poolSettings = await getDefaultPoolSettings(assetMint, shareMint);
