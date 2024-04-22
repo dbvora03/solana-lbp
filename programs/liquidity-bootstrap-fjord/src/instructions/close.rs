@@ -90,7 +90,7 @@ pub fn handler(ctx: Context<Close>) -> Result<()> {
 
   // 1. Calculation
   let total_assets = assets - ctx.accounts.pool.total_swap_fees_asset;
-  let platform_fees = total_assets * (lbp_manager_info.platform_fee / 1_000_000_000);
+  let platform_fees = (total_assets * lbp_manager_info.platform_fee) / 1_000_000_000;
   let total_assets_minus_fees = total_assets - platform_fees;
 
   // 2. Transfer fees to fee recipient

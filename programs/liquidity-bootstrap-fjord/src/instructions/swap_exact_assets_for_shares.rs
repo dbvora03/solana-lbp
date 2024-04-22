@@ -64,7 +64,7 @@ pub fn handler(
   let assets: u64 = ctx.accounts.pool_asset_vault.amount;
   let shares: u64 = ctx.accounts.pool_share_vault.amount;
   
-  let swap_fee: u64 = assets_in * (lbp_manager_info.swap_fee / 1_000_000_000);
+  let swap_fee: u64 = (assets_in * lbp_manager_info.swap_fee) / 1_000_000_000;
   pool.total_swap_fees_asset += swap_fee;
 
   let shares_out_result = preview_shares_out(pool, assets_in, assets, shares);

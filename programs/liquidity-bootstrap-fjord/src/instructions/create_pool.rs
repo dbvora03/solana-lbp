@@ -55,11 +55,12 @@ pub fn handler(
     return err!(ErrorCode::InvalidAssetOrShare);
   }
 
-  let curr_timestamp = Clock::get()?.unix_timestamp as u64;
-  let one_day_in_seconds: u64 = 60 * 60 * 24;
-  if curr_timestamp + one_day_in_seconds > settings.sale_end || settings.sale_end - settings.sale_start < one_day_in_seconds {
-    return err!(ErrorCode::SalePeriodLow);
-  }
+  // TODO: Do we need this part? Don't understand the logic here
+  // let curr_timestamp = Clock::get()?.unix_timestamp as u64;
+  // let one_day_in_seconds: u64 = 60 * 60 * 24;
+  // if curr_timestamp + one_day_in_seconds > settings.sale_end || settings.sale_end - settings.sale_start < one_day_in_seconds {
+  //   return err!(ErrorCode::SalePeriodLow);
+  // }
 
   if settings.sale_end < settings.vest_end {
     if settings.sale_end > settings.vest_cliff {
