@@ -13,11 +13,11 @@ pub struct Initialize<'info> {
   #[account(
     init,
     payer = authority,
-    seeds = [b"lbp-manager".as_ref(), &id.to_le_bytes()],
+    seeds = [b"lbp-factory".as_ref(), &id.to_le_bytes()],
     space = 8 + 8 + 32 + 32 + 8 + 8 + 8 + 1,
     bump,
   )]
-  pub lbp_manager_info: Box<Account<'info, LBPManagerInfo>>,
+  pub lbp_factory_setting: Box<Account<'info, LBPFactorySetting>>,
   pub system_program: Program<'info, System>,
 }
 
@@ -29,7 +29,7 @@ pub fn handler(
   referrer_fee: u64,
   swap_fee: u64,
 ) -> Result<()> {
-  let factory_settings = &mut ctx.accounts.lbp_manager_info;
+  let factory_settings = &mut ctx.accounts.lbp_factory_setting;
 
   if 
     platform_fee > MAX_FEE_BIPS as u64 ||
@@ -40,7 +40,7 @@ pub fn handler(
   }
 
   factory_settings.id = id;
-  factory_settings.bump = ctx.bumps.lbp_manager_info;
+  factory_settings.bump = ctx.bumps.lbp_factory_setting;
   factory_settings.authority = *ctx.accounts.authority.key;
   factory_settings.fee_recipient = fee_recipient;
   factory_settings.platform_fee = platform_fee;

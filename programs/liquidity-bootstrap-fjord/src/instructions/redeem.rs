@@ -25,7 +25,7 @@ pub struct Redeem<'info> {
     )]
     pub share_vault_authority: AccountInfo<'info>,
 
-    pub lbp_manager_info: Account<'info, LBPManagerInfo>,
+    pub lbp_factory_setting: Account<'info, LBPFactorySetting>,
 
     #[account(mut)]
     pub buyer_stats: Box<Account<'info, UserStats>>,

@@ -50,28 +50,28 @@ pub struct Close<'info> {
 
   #[account(
     mut,
-    constraint = fee_recipient_asset_vault.owner == lbp_manager_info.fee_recipient
+    constraint = fee_recipient_asset_vault.owner == lbp_factory_setting.fee_recipient
   )]
   pub fee_recipient_asset_vault: Account<'info, TokenAccount>,
 
   #[account(
     mut,
-    constraint = fee_recipient_share_vault.owner == lbp_manager_info.fee_recipient
+    constraint = fee_recipient_share_vault.owner == lbp_factory_setting.fee_recipient
   )]
   pub fee_recipient_share_vault: Account<'info, TokenAccount>,
 
   #[account(
     mut,
-    constraint = pool.lbp_manager == lbp_manager_info.key()
+    constraint = pool.lbp_factory == lbp_factory_setting.key()
   )]
-  pub lbp_manager_info: Account<'info, LBPManagerInfo>,
+  pub lbp_factory_setting: Account<'info, LBPFactorySetting>,
 
   pub token_program: Program<'info, Token>,
   pub system_program: Program<'info, System>,
 }
 
 pub fn handler(ctx: Context<Close>) -> Result<()> {
-  let lbp_manager_info = &mut ctx.accounts.lbp_manager_info;
+  let lbp_factory_setting = &mut ctx.accounts.lbp_factory_setting;
   let assets: u64 = ctx.accounts.asset_vault.amount;
   let shares: u64 = ctx.accounts.share_vault.amount;
 
@@ -90,7 +90,7 @@ pub fn handler(ctx: Context<Close>) -> Result<()> {
 
   // 1. Calculation
   let total_assets = assets - ctx.accounts.pool.total_swap_fees_asset;
-  let platform_fees = (total_assets * lbp_manager_info.platform_fee) / 1_000_000_000;
+  let platform_fees = (total_assets * lbp_factory_setting.platform_fee) / 1_000_000_000;
   let total_assets_minus_fees = total_assets - platform_fees;
 
   // 2. Transfer fees to fee recipient

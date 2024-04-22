@@ -22,7 +22,7 @@ pub struct PoolSettings {
 pub struct Pool {
   pub id: u64, // 8
   pub owner: Pubkey, // 32
-  pub lbp_manager: Pubkey, // 32
+  pub lbp_factory: Pubkey, // 32
   pub settings: PoolSettings,
   pub initialized: bool, // 1
   pub closed: bool, // 1

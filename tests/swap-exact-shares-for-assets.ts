@@ -6,7 +6,7 @@ import { ONE_DAY, SOL, closePool, createMintAndVault, createPool, createUser, cr
 
 describe("swap exact shares for assets", () => {
   /* Settings */
-  const managerId = new anchor.BN(500);
+  const factoryId = new anchor.BN(500);
   const decimals = 6; // mint decimals
   
   /* Global Variables */
@@ -19,7 +19,7 @@ describe("swap exact shares for assets", () => {
   let buyerAssetVault;
   let buyerShareVault;
 
-  let lbpManagerPda;
+  let lbpFactoryPda;
 
   let managerShareVault;
   let feeAssetVault;
@@ -30,14 +30,14 @@ describe("swap exact shares for assets", () => {
   let depositorAssetVault;
   let depositorShareVault;
 
-  let poolId = managerId.clone();
+  let poolId = factoryId.clone();
 
   before(async () => {
     // funds users
     await fund(provider.wallet.publicKey);
 
     // init manager
-    lbpManagerPda = await initialize(managerId);
+    lbpFactoryPda = await initialize(factoryId);
   });
 
   beforeEach(async () => {
@@ -92,7 +92,7 @@ describe("swap exact shares for assets", () => {
       assetVaultAuthority,
       shareVault,
       shareVaultAuthority,
-    } = await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpManagerPda, assetMint, shareMint);
+    } = await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpFactoryPda, assetMint, shareMint);
 
     const sharesIn = SOL;
     let minAssets = await program.methods.previewAssetsOut(
@@ -102,7 +102,7 @@ describe("swap exact shares for assets", () => {
       pool: pool.publicKey,
       poolAssetsAccount: assetVault.publicKey,
       poolSharesAccount: shareVault.publicKey,
-      lbpManagerInfo: lbpManagerPda,
+      lbpFactorySetting:lbpFactoryPda,
     })
     .view();
 
@@ -122,7 +122,7 @@ describe("swap exact shares for assets", () => {
         poolSharesAccount: shareVault.publicKey,
         depositorAssetsAccount: buyerAssetVault,
         buyerStats: buyerStats,
-        lbpManagerInfo: lbpManagerPda,
+        lbpFactorySetting:lbpFactoryPda,
         tokenProgram: splToken.TOKEN_PROGRAM_ID,
         rent: SYSVAR_RENT_PUBKEY,
         systemProgram: anchor.web3.SystemProgram.programId,

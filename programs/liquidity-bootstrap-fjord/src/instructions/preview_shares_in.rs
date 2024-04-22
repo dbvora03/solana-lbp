@@ -12,13 +12,13 @@ pub struct PreviewSharesIn<'info> {
 
   pub pool_shares_account: Account<'info, TokenAccount>,
 
-  pub lbp_manager_info: Account<'info, LBPManagerInfo>,
+  pub lbp_factory_setting: Account<'info, LBPFactorySetting>,
 }
 
 pub fn handler(ctx: Context<PreviewSharesIn>, assets_out: u64) -> Result<u64> {
 
   let pool = &mut ctx.accounts.pool;
-  let lbp_manager_info = &mut ctx.accounts.lbp_manager_info;
+  let lbp_factory_setting = &mut ctx.accounts.lbp_factory_setting;
 
   let assets: u64 = ctx.accounts.pool_assets_account.amount;
   let shares: u64 = ctx.accounts.pool_shares_account.amount;

@@ -6,7 +6,7 @@ import { ONE_DAY, SOL, closePool, createMintAndVault, createPool, createUser, cr
 
 describe("swap exact assets for shares", () => {
 /* Settings */
-const managerId = new anchor.BN(400);
+const factoryId = new anchor.BN(400);
 const decimals = 6; // mint decimals
 
 /* Global Variables */
@@ -23,21 +23,21 @@ let depositor;
 let depositorAssetVault;
 let depositorShareVault;
 
-let lbpManagerPda;
+let lbpFactoryPda;
 
 let managerShareVault;
 let feeAssetVault;
 let feeShareVault;
 let redeemRecipientShareVault;
 
-let poolId = managerId.clone();
+let poolId = factoryId.clone();
 
 before(async () => {
   // funds users
   await fund(provider.wallet.publicKey);
 
   // init manager
-  lbpManagerPda = await initialize(managerId);
+  lbpFactoryPda = await initialize(factoryId);
 });
 
 beforeEach(async () => {
@@ -93,7 +93,7 @@ beforeEach(async () => {
       assetVaultAuthority,
       shareVault,
       shareVaultAuthority,
-    } = await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpManagerPda, assetMint, shareMint);
+    } = await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpFactoryPda, assetMint, shareMint);
 
     const assetsIn = SOL;
     let minSharesOut = await program.methods.previewSharesOut(
@@ -103,7 +103,7 @@ beforeEach(async () => {
         pool: pool.publicKey,
         poolAssetsAccount: assetVault.publicKey,
         poolSharesAccount: shareVault.publicKey,
-        lbpManagerInfo: lbpManagerPda,
+        lbpFactorySetting:lbpFactoryPda,
     })
     .view();
 
@@ -125,7 +125,7 @@ beforeEach(async () => {
         poolShareVault: shareVault.publicKey,
         depositorAssetVault: buyerAssetVault,
         buyerStats: buyerStats,
-        lbpManagerInfo: lbpManagerPda,
+        lbpFactorySetting:lbpFactoryPda,
         tokenProgram: splToken.TOKEN_PROGRAM_ID,
         rent: SYSVAR_RENT_PUBKEY,
         systemProgram: anchor.web3.SystemProgram.programId,
@@ -162,7 +162,7 @@ beforeEach(async () => {
       assetVaultAuthority,
       shareVault,
       shareVaultAuthority,
-    } = await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpManagerPda, assetMint, shareMint);
+    } = await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpFactoryPda, assetMint, shareMint);
 
     const assetsIn = SOL;
     let minSharesOut = await program.methods.previewSharesOut(
@@ -172,7 +172,7 @@ beforeEach(async () => {
         pool: pool.publicKey,
         poolAssetsAccount: assetVault.publicKey,
         poolSharesAccount: shareVault.publicKey,
-        lbpManagerInfo: lbpManagerPda,
+        lbpFactorySetting:lbpFactoryPda,
     })
     .view();
 
@@ -194,7 +194,7 @@ beforeEach(async () => {
         poolShareVault: shareVault.publicKey,
         depositorAssetVault: buyerAssetVault,
         buyerStats: buyerStats,
-        lbpManagerInfo: lbpManagerPda,
+        lbpFactorySetting:lbpFactoryPda,
         tokenProgram: splToken.TOKEN_PROGRAM_ID,
         rent: SYSVAR_RENT_PUBKEY,
         systemProgram: anchor.web3.SystemProgram.programId,
@@ -219,7 +219,7 @@ beforeEach(async () => {
         pool: pool.publicKey,
         poolAssetsAccount: assetVault.publicKey,
         poolSharesAccount: shareVault.publicKey,
-        lbpManagerInfo: lbpManagerPda,
+        lbpFactorySetting:lbpFactoryPda,
       })
       .view();
   
@@ -234,7 +234,7 @@ beforeEach(async () => {
       poolShareVault: shareVault.publicKey,
       depositorAssetVault: buyerAssetVault,
       buyerStats: buyerStats,
-      lbpManagerInfo: lbpManagerPda,
+      lbpFactorySetting:lbpFactoryPda,
       tokenProgram: splToken.TOKEN_PROGRAM_ID,
       rent: SYSVAR_RENT_PUBKEY,
       systemProgram: anchor.web3.SystemProgram.programId,

@@ -21,13 +21,12 @@ import {
   program,
   provider,
   swapExactAssetsForShares,
-  getVaultBalance,
-  getAccountInfo
+  getVaultBalance
 } from "./utils";
 
 describe.only("Redeem And Close Tests", () => {
   /* Settings */
-  const managerId = new anchor.BN(200);
+  const factoryId = new anchor.BN(200);
   const decimals = 6; // mint decimals
 
   /* Global Variables */
@@ -40,7 +39,7 @@ describe.only("Redeem And Close Tests", () => {
   let buyerAssetVault;
   let buyerShareVault;
 
-  let lbpManagerPda;
+  let lbpFactoryPda;
 
   let feeRecipient;
   let feeAssetVault;
@@ -53,7 +52,7 @@ describe.only("Redeem And Close Tests", () => {
 
   let lbpFactorySettingsAuthority;
 
-  let poolId = managerId.clone();
+  let poolId = factoryId.clone();
 
   before(async () => {
     // funds users
@@ -86,7 +85,7 @@ describe.only("Redeem And Close Tests", () => {
     feeShareVault = _feeShareVault;
 
     // init manager
-    lbpManagerPda = await initialize(managerId, feeRecipient.publicKey, lbpFactorySettingsAuthority);
+    lbpFactoryPda = await initialize(factoryId, feeRecipient.publicKey, lbpFactorySettingsAuthority);
   });
 
   beforeEach(async () => {
@@ -126,7 +125,7 @@ describe.only("Redeem And Close Tests", () => {
       assetVaultAuthority,
       shareVault,
       shareVaultAuthority,
-    } = await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpManagerPda, assetMint, shareMint);
+    } = await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpFactoryPda, assetMint, shareMint);
 
     // swap
     const { userStats: buyerStats } = await createUserStats(
@@ -141,7 +140,7 @@ describe.only("Redeem And Close Tests", () => {
       shareVault.publicKey,
       assetVault.publicKey,
       buyerAssetVault,
-      lbpManagerPda,
+      lbpFactoryPda,
       buyerStats
     );
 
@@ -156,7 +155,7 @@ describe.only("Redeem And Close Tests", () => {
     const total_swap_fees_share = poolStateAccountBeforeClose.totalSwapFeesShare;
 
     const total_assets = assets.sub(total_swap_fees_asset);
-    const platform_fee = (await program.account.lbpManagerInfo.fetch(lbpManagerPda)).platformFee;
+    const platform_fee = (await program.account.lbpFactorySetting.fetch(lbpFactoryPda)).platformFee;
     const platform_fees = total_assets.mul(platform_fee).div(new anchor.BN(1_000_000_000));
     const total_assets_minus_fees = total_assets.sub(platform_fees);
 
@@ -176,7 +175,7 @@ describe.only("Redeem And Close Tests", () => {
       depositorShareVault, // now the pool onwer is the depositor
       feeShareVault,
       feeAssetVault,
-      lbpManagerPda
+      lbpFactoryPda
     );
 
     const poolOwnerAssetVaultBalanceAfterClose = await getVaultBalance(depositorAssetVault);
@@ -204,7 +203,7 @@ describe.only("Redeem And Close Tests", () => {
       assetVaultAuthority,
       shareVault,
       shareVaultAuthority,
-    } = await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpManagerPda, assetMint, shareMint);
+    } = await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpFactoryPda, assetMint, shareMint);
 
     const { userStats: buyerStats } = await createUserStats(
       pool.publicKey,
@@ -218,7 +217,7 @@ describe.only("Redeem And Close Tests", () => {
           pool: pool.publicKey,
           shareVault: shareVault.publicKey,
           shareVaultAuthority: shareVaultAuthority,
-          lbpManagerInfo: lbpManagerPda,
+          lbpFactorySetting:lbpFactoryPda,
           buyerStats: buyerStats,
           recipientShareVault: buyerShareVault,
           tokenProgram: splToken.TOKEN_PROGRAM_ID,
@@ -245,7 +244,7 @@ describe.only("Redeem And Close Tests", () => {
       assetVaultAuthority,
       shareVault,
       shareVaultAuthority,
-    } = await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpManagerPda, assetMint, shareMint);
+    } = await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpFactoryPda, assetMint, shareMint);
 
     // swap
     const { userStats: buyerStats } = await createUserStats(
@@ -260,7 +259,7 @@ describe.only("Redeem And Close Tests", () => {
       shareVault.publicKey,
       assetVault.publicKey,
       buyerAssetVault,
-      lbpManagerPda,
+      lbpFactoryPda,
       buyerStats
     );
 
@@ -275,7 +274,7 @@ describe.only("Redeem And Close Tests", () => {
       depositorShareVault, // now the pool onwer is the depositor
       feeShareVault,
       feeAssetVault,
-      lbpManagerPda
+      lbpFactoryPda
     );
 
     let buyerStatsAccount = await program.account.userStats.fetch(buyerStats);
@@ -287,7 +286,7 @@ describe.only("Redeem And Close Tests", () => {
         pool: pool.publicKey,
         shareVault: shareVault.publicKey,
         shareVaultAuthority: shareVaultAuthority,
-        lbpManagerInfo: lbpManagerPda,
+        lbpFactorySetting:lbpFactoryPda,
         buyerStats: buyerStats,
         recipientShareVault: buyerShareVault,
         tokenProgram: splToken.TOKEN_PROGRAM_ID,

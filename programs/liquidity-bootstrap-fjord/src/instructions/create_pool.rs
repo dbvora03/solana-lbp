@@ -29,7 +29,7 @@ pub struct CreatePool<'info> {
   #[account(mut)]
   pub depositor: Signer<'info>,
 
-  pub lbp_manager_info: Account<'info, LBPManagerInfo>,
+  pub lbp_factory_setting: Account<'info, LBPFactorySetting>,
 
   pub token_program: Program<'info, Token>,
   pub rent: Sysvar<'info, Rent>,
@@ -82,7 +82,7 @@ pub fn handler(
 
   pool.id = id;
   pool.owner = *ctx.accounts.depositor.to_account_info().key;
-  pool.lbp_manager = *ctx.accounts.lbp_manager_info.to_account_info().key;
+  pool.lbp_factory = *ctx.accounts.lbp_factory_setting.to_account_info().key;
   pool.settings = settings;
   pool.initialized = true;
   pool.closed = false;

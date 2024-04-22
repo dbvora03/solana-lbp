@@ -12,7 +12,7 @@ pub struct SwapSharesForExactAssets<'info> {
 
   #[account(
     mut,
-    constraint = pool.lbp_manager == lbp_manager_info.key()
+    constraint = pool.lbp_factory == lbp_factory_setting.key()
   )]
   pub pool: Account<'info, Pool>,
 
@@ -43,7 +43,7 @@ pub struct SwapSharesForExactAssets<'info> {
   pub buyer_stats: Box<Account<'info, UserStats>>,
 
   #[account(mut)]
-  pub lbp_manager_info: Account<'info, LBPManagerInfo>,
+  pub lbp_factory_setting: Account<'info, LBPFactorySetting>,
 
   pub token_program: Program<'info, Token>,
   pub rent: Sysvar<'info, Rent>,
@@ -58,7 +58,7 @@ pub fn handler(
 ) -> Result<u64> {
 
   let pool = &mut ctx.accounts.pool;
-  let manager = &mut ctx.accounts.lbp_manager_info;
+  let manager = &mut ctx.accounts.lbp_factory_setting;
 
   let assets: u64 = ctx.accounts.pool_assets_account.amount;
   let shares: u64 = ctx.accounts.pool_shares_account.amount;
