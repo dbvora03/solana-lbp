@@ -31,5 +31,9 @@ pub struct Pool {
   pub total_purchased: u64, // 8
   pub share_vault_nonce: u8, // 1
   pub asset_vault_nonce: u8, // 1
+  pub share_vault_authority: Pubkey, // 32
+  pub asset_vault_authority: Pubkey, // 32
+  pub share_vault: Pubkey, // 32
+  pub asset_vault: Pubkey, // 32
 }
 

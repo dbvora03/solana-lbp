@@ -16,7 +16,11 @@ pub struct SwapExactSharesForAssets<'info> {
   )]
   pub pool: Account<'info, Pool>,
 
-  #[account(mut)]
+  #[account(
+    mut,
+    constraint = pool_assets_account.mint == pool.settings.asset,
+    constraint = pool_assets_account.owner == pool.asset_vault_authority,
+  )]
   pub pool_assets_account: Account<'info, TokenAccount>,
 
   /// CHECK: This is not dangerous because we don't read or write from this account
@@ -29,7 +33,11 @@ pub struct SwapExactSharesForAssets<'info> {
   )]
   pub asset_vault_authority: AccountInfo<'info>,
 
-  #[account(mut)]
+  #[account(
+    mut,
+    constraint = pool_shares_account.mint == pool.settings.share,
+    constraint = pool_shares_account.owner == pool.share_vault_authority,
+  )]
   pub pool_shares_account: Account<'info, TokenAccount>,
 
   #[account(

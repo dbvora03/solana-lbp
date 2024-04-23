@@ -212,6 +212,7 @@ describe("Pool Creation Tests", () => {
   });
 
   it("should revert invalid asset", async () => {
+    const oldAssetMint = assetMint;
     assetMint = shareMint;
     const poolSettings = await getDefaultPoolSettings(assetMint, shareMint);
 
@@ -220,6 +221,27 @@ describe("Pool Creation Tests", () => {
       expect.fail("Should have thrown an error");
     } catch (error) {
       expect(error.error.errorMessage).to.equal("A raw constraint was violated");
+    } finally {
+      assetMint = oldAssetMint;
     }
+  });
+
+  it("should gets vault address and vault authority address from pool account", async () => {
+    const poolSettings = await getDefaultPoolSettings(assetMint, shareMint);
+
+    const {
+      pool,
+      assetVault,
+      assetVaultAuthority,
+      shareVault,
+      shareVaultAuthority,
+    } = await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpFactoryPda, assetMint, shareMint);
+
+    const poolAccountAddressStoredInDB = pool.publicKey;
+    const poolAccount = await program.account.pool.fetch(poolAccountAddressStoredInDB);
+    assert.ok(poolAccount.assetVault.toString() === assetVault.publicKey.toString(), "Asset vault address should be the same");
+    assert.ok(poolAccount.assetVaultAuthority.toString() === assetVaultAuthority.toString(), "Asset vault authority address should be the same");
+    assert.ok(poolAccount.shareVault.toString() === shareVault.publicKey.toString(), "Share vault address should be the same");
+    assert.ok(poolAccount.shareVaultAuthority.toString() === shareVaultAuthority.toString(), "Share vault authority address should be the same");
   });
 });

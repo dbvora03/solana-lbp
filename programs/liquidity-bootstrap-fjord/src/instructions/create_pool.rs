@@ -91,6 +91,10 @@ pub fn handler(
   pool.total_purchased = 0;
   pool.share_vault_nonce = share_vault_nonce;
   pool.asset_vault_nonce = asset_vault_nonce;
+  pool.share_vault_authority = ctx.accounts.share_vault.owner;
+  pool.asset_vault_authority = ctx.accounts.asset_vault.owner;
+  pool.share_vault = *ctx.accounts.share_vault.to_account_info().key;
+  pool.asset_vault = *ctx.accounts.asset_vault.to_account_info().key;
 
   token::transfer(
     CpiContext::new(

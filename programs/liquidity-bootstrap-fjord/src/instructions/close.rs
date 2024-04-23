@@ -10,7 +10,11 @@ pub struct Close<'info> {
   #[account(mut)]
   pub pool: Box<Account<'info, Pool>>,
 
-  #[account(mut)]
+  #[account(
+    mut,
+    constraint = asset_vault.mint == pool.settings.asset,
+    constraint = asset_vault.owner == pool.asset_vault_authority,
+  )]
   pub asset_vault: Account<'info, TokenAccount>,
 
   /// CHECK: This is not dangerous because we don't read or write from this account
@@ -23,7 +27,11 @@ pub struct Close<'info> {
   )]
   pub asset_vault_authority: AccountInfo<'info>,
 
-  #[account(mut)]
+  #[account(
+    mut,
+    constraint = share_vault.mint == pool.settings.share,
+    constraint = share_vault.owner == pool.share_vault_authority,
+  )]
   pub share_vault: Account<'info, TokenAccount>,
 
   /// CHECK: This is not dangerous because we don't read or write from this account
@@ -56,6 +64,7 @@ pub struct Close<'info> {
 
   #[account(
     mut,
+    constraint = fee_recipient_share_vault.mint == pool.settings.share,
     constraint = fee_recipient_share_vault.owner == lbp_factory_setting.fee_recipient
   )]
   pub fee_recipient_share_vault: Account<'info, TokenAccount>,

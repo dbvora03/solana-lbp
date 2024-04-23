@@ -8,11 +8,16 @@ use anchor_spl::token::{self, TokenAccount, Transfer, Token};
 pub struct Redeem<'info> {
 
     #[account(
-        mut
+        mut,
+        constraint = pool.lbp_factory == lbp_factory_setting.key()
     )]
     pub pool: Box<Account<'info, Pool>>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        constraint = share_vault.mint == pool.settings.share,
+        constraint = share_vault.owner == pool.share_vault_authority,
+    )]
     pub share_vault: Account<'info, TokenAccount>,
 
     /// CHECK: This is not dangerous because we don't read or write from this account

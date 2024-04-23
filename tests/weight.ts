@@ -2,7 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { assert, expect } from "chai";
 import { ONE_DAY, SOL, closePool, createMintAndVault, createPool, createUser, createUserStats, createVault, defaultInitialAssetAmount, defaultInitialShareAmount, fund, getDefaultPoolSettings, getNow, initialize, program, provider, swapExactAssetsForShares } from "./utils";
 
-describe.only("Weight Calculations", () => {
+describe("Weight Calculations", () => {
   /* Settings */
   const factoryId = new anchor.BN(700);
   const decimals = 6; // mint decimals

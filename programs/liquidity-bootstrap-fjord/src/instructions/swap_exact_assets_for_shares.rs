@@ -28,10 +28,18 @@ pub struct SwapExactAssetsForShares<'info> {
 
   pub lbp_factory_setting: Account<'info, LBPFactorySetting>,
 
-  #[account(mut)]
+  #[account(
+    mut,
+    constraint = pool_share_vault.mint == pool.settings.share,
+    constraint = pool_share_vault.owner == pool.share_vault_authority,
+  )]
   pub pool_share_vault: Account<'info, TokenAccount>,
 
-  #[account(mut)]
+  #[account(
+    mut,
+    constraint = pool_asset_vault.mint == pool.settings.asset,
+    constraint = pool_asset_vault.owner == pool.asset_vault_authority,
+  )]
   pub pool_asset_vault: Account<'info, TokenAccount>,
 
   /// CHECK: This is not dangerous because we don't read or write from this account

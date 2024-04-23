@@ -8,15 +8,27 @@ use crate::utils::*;
 pub struct SwapAssetsForExactShares<'info> {
   #[account(mut)]
   pub depositor: Signer<'info>,
+
   #[account(
     mut,
     constraint = pool.lbp_factory == lbp_factory_setting.key()
   )]
   pub pool: Account<'info, Pool>,
-  #[account(mut)]
+
+  #[account(
+    mut,
+    constraint = pool_assets_account.mint == pool.settings.asset,
+    constraint = pool_assets_account.owner == pool.asset_vault_authority,
+  )]
   pub pool_assets_account: Account<'info, TokenAccount>,
-  #[account(mut)]
+
+  #[account(
+    mut,
+    constraint = pool_shares_account.mint == pool.settings.share,
+    constraint = pool_shares_account.owner == pool.share_vault_authority,
+  )]
   pub pool_shares_account: Account<'info, TokenAccount>,
+  
   #[account(
     mut,
     constraint = depositor_assets_account.mint == pool.settings.asset,
