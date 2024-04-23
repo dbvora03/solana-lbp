@@ -50,7 +50,11 @@ pub struct SwapExactAssetsForShares<'info> {
   )]
   pub depositor_asset_vault: Account<'info, TokenAccount>,
 
-  #[account(mut)]
+  #[account(   
+    mut,
+    seeds = [b"user_stats".as_ref(), pool.key().as_ref(), depositor.key().as_ref()],
+    bump = buyer_stats.bump,
+  )]
   pub buyer_stats: Box<Account<'info, UserStats>>,
 
   pub token_program: Program<'info, Token>,
