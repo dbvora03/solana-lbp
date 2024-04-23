@@ -370,37 +370,65 @@ export const swapExactAssetsForShares = async (
 
 /* User Utils */
 
+export const getUserStatsPda = async (
+    pool: anchor.web3.PublicKey,
+    user: anchor.web3.PublicKey
+) => {
+    const [userStatsPda] = anchor.web3.PublicKey.findProgramAddressSync(
+        [
+          anchor.utils.bytes.utf8.encode("user_stats"),
+          pool.toBuffer(),
+          user.toBuffer(),
+        ],
+        program.programId
+    );
+    return userStatsPda;
+}
+
+export const isUserStatsInitialized = async (
+    pool: anchor.web3.PublicKey,
+    user: anchor.web3.PublicKey
+) => {
+    const userStatsPda = await getUserStatsPda(pool, user);
+    try {
+        await program.account.userStats.fetch(userStatsPda);
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
 export const createUserStats = async (
     pool: anchor.web3.PublicKey,
     user: anchor.web3.Keypair
 ) => {
-    // const [buyerStatsPda] = anchor.web3.PublicKey.findProgramAddressSync(
-    //     [
-    //       anchor.utils.bytes.utf8.encode("user_stats"),
-    //       pool.toBuffer(),
-    //       buyer.toBuffer(),
-    //     ],
-    //     program.programId
-    // );
+    const [userStatsPda] = anchor.web3.PublicKey.findProgramAddressSync(
+        [
+          anchor.utils.bytes.utf8.encode("user_stats"),
+          pool.toBuffer(),
+          user.publicKey.toBuffer(),
+        ],
+        program.programId
+    );
 
-    const userStats = new anchor.web3.Keypair();
+    if (await isUserStatsInitialized(pool, user.publicKey)) {
+        return {
+            userStats: userStatsPda
+        }
+    }
 
     await program.methods.createUserStats(
-        user.publicKey,
     ).accounts({
-        userStats: userStats.publicKey,
+        userStats: userStatsPda,
+        user: user.publicKey,
         pool: pool,
         systemProgram: anchor.web3.SystemProgram.programId,
     }).signers(
-        [userStats]
-    ).preInstructions(
-        [
-            await program.account.userStats.createInstruction(userStats)
-        ]
+        [user]
     ).rpc();
 
     return {
-        userStats: userStats.publicKey
+        userStats: userStatsPda
     }
 }
 
