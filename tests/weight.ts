@@ -179,4 +179,26 @@ describe("Weight Calculations", () => {
     .view();
     assert.ok(assetsIn.div(SOL).eq(new anchor.BN(expectedAssetsIn)), "assetsIn should be 990");
   });
+
+  it("test compute reserves and weights view function", async () => {
+    const poolSettings = await getDefaultPoolSettings(assetMint, shareMint);
+        
+    const {
+        pool,
+        assetVault,
+        assetVaultAuthority,
+        shareVault,
+        shareVaultAuthority,
+    } = await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpFactoryPda, assetMint, shareMint);
+
+    const output = await program.methods.computeReservesAndWeights()
+      .accounts({
+        pool: pool.publicKey,
+        poolAssetVault: assetVault.publicKey,
+        poolShareVault: shareVault.publicKey,
+      })
+      .view();
+    
+    assert.ok(output.assetReserve.toString() === "1000000000000", "assetReserve");
+  });
 });
