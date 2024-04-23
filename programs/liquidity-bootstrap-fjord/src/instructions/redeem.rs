@@ -7,6 +7,9 @@ use anchor_spl::token::{self, TokenAccount, Transfer, Token};
 #[derive(Accounts)]
 pub struct Redeem<'info> {
 
+    #[account(mut)]
+    pub user: Signer<'info>,
+
     #[account(
         mut,
         constraint = pool.lbp_factory == lbp_factory_setting.key()
@@ -32,7 +35,11 @@ pub struct Redeem<'info> {
 
     pub lbp_factory_setting: Account<'info, LBPFactorySetting>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        seeds = [b"user_stats".as_ref(), pool.key().as_ref(), user.key().as_ref()],
+        bump = buyer_stats.bump,
+    )]
     pub buyer_stats: Box<Account<'info, UserStats>>,
 
     #[account(mut)]

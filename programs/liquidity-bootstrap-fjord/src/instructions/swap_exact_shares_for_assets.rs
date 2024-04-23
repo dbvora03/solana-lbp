@@ -47,7 +47,11 @@ pub struct SwapExactSharesForAssets<'info> {
   )]
   pub depositor_assets_account: Account<'info, TokenAccount>,
 
-  #[account(mut)]
+  #[account(   
+    mut,
+    seeds = [b"user_stats".as_ref(), pool.key().as_ref(), depositor.key().as_ref()],
+    bump = buyer_stats.bump,
+  )]
   pub buyer_stats: Box<Account<'info, UserStats>>,
 
   pub lbp_factory_setting: Account<'info, LBPFactorySetting>,

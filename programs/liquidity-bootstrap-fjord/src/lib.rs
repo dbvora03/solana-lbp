@@ -62,8 +62,8 @@ pub mod liquidity_bootstrap_fjord {
         instructions::create_pool::handler(ctx, settings, id, shares, assets, share_vault_nonce, asset_vault_nonce)
     }
 
-    pub fn create_user_stats(ctx: Context<CreateUserStats>, depositor: Pubkey) -> Result<()> {
-        instructions::create_user_stats::handler(ctx, depositor)
+    pub fn create_user_stats(ctx: Context<CreateUserStats>) -> Result<()> {
+        instructions::create_user_stats::handler(ctx)
     }
 
     pub fn preview_assets_in(ctx: Context<PreviewAssetsIn>, shares_out: u64) -> Result<u64> {

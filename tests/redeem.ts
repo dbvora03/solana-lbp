@@ -214,6 +214,7 @@ describe("Redeem And Close Tests", () => {
       await program.methods
         .redeem()
         .accounts({
+          user: buyer.publicKey,
           pool: pool.publicKey,
           shareVault: shareVault.publicKey,
           shareVaultAuthority: shareVaultAuthority,
@@ -224,6 +225,7 @@ describe("Redeem And Close Tests", () => {
           rent: SYSVAR_RENT_PUBKEY,
           systemProgram: anchor.web3.SystemProgram.programId,
         })
+        .signers([buyer])
         .rpc();
     } catch (error) {
       expect(error.error.errorMessage).to.equal("Redeeming disallowed");
@@ -283,6 +285,7 @@ describe("Redeem And Close Tests", () => {
     await program.methods
       .redeem()
       .accounts({
+        user: buyer.publicKey,
         pool: pool.publicKey,
         shareVault: shareVault.publicKey,
         shareVaultAuthority: shareVaultAuthority,
@@ -293,6 +296,7 @@ describe("Redeem And Close Tests", () => {
         rent: SYSVAR_RENT_PUBKEY,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
+      .signers([buyer])
       .rpc();
 
     buyerStatsAccount = await program.account.userStats.fetch(buyerStats);
