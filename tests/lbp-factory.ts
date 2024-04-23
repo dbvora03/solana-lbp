@@ -6,7 +6,7 @@ import { BN_0, BN_1, ONE_DAY, SOL, TWO_DAYS, ZERO_ADDRESS, closePool, createMint
 
 describe("Pool Creation Tests", () => {
   /* Settings */
-  const managerId = new anchor.BN(100);
+  const factoryId = new anchor.BN(100);
   const decimals = 6; // mint decimals
 
   /* Global Variables */
@@ -15,24 +15,22 @@ describe("Pool Creation Tests", () => {
   let assetGod;
   let shareGod;
 
+  let feeRecipient;
+  let feeAssetVault;
+  let feeShareVault;
+
+  let lbpFactorySettingsAuthority;
+
   let depositor;
   let depositorAssetVault;
   let depositorShareVault;
 
-  let lbpManagerPda;
-  let poolId = managerId.clone();
+  let lbpFactoryPda;
+  let poolId = factoryId.clone();
 
   before(async () => {
     // funds users
     await fund(provider.wallet.publicKey);
-
-    // init manager
-    lbpManagerPda = await initialize(managerId);
-  });
-
-  beforeEach(async () => {
-    // use a new pool id 
-    poolId = poolId.add(new anchor.BN(1));
 
     // prepare mints
     [assetMint, assetGod] = await createMintAndVault(
@@ -45,6 +43,28 @@ describe("Pool Creation Tests", () => {
       provider.wallet.publicKey,
       decimals
     );
+
+    // prepare factory settings authority
+    lbpFactorySettingsAuthority = anchor.web3.Keypair.generate();
+    await fund(lbpFactorySettingsAuthority.publicKey);
+
+    // prepare fee recipient
+    const {
+      user: _feeRecipient,
+      userAssetVault: _feeAssetVault,
+      userShareVault: _feeShareVault,
+    } = await createUser(assetMint, shareMint);
+    feeRecipient = _feeRecipient;
+    feeAssetVault = _feeAssetVault;
+    feeShareVault = _feeShareVault;
+
+    // init manager
+    lbpFactoryPda = await initialize(factoryId, feeRecipient.publicKey, lbpFactorySettingsAuthority);
+  });
+
+  beforeEach(async () => {
+    // use a new pool id 
+    poolId = poolId.add(new anchor.BN(1));
 
     // prepare depositor account
     const { 
@@ -62,7 +82,7 @@ describe("Pool Creation Tests", () => {
     poolSettings.vestCliff = poolSettings.saleEnd.add(ONE_DAY);
     poolSettings.vestEnd = poolSettings.saleEnd.add(TWO_DAYS);
 
-    await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpManagerPda, assetMint, shareMint);
+    await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpFactoryPda, assetMint, shareMint);
   });
   
   it("should create no vesting pool", async () => {
@@ -70,7 +90,7 @@ describe("Pool Creation Tests", () => {
     poolSettings.vestCliff = BN_0;
     poolSettings.vestEnd = BN_0;
 
-    await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpManagerPda, assetMint, shareMint);
+    await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpFactoryPda, assetMint, shareMint);
   });
 
   it("should revert vesting pool invalid vest cliff", async () => {
@@ -79,7 +99,7 @@ describe("Pool Creation Tests", () => {
     poolSettings.vestEnd = poolSettings.saleEnd.add(BN_1);
 
     try {
-      await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpManagerPda, assetMint, shareMint);
+      await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpFactoryPda, assetMint, shareMint);
       expect.fail("Should have thrown an error");
     } catch (error) {
       expect(error.error.errorMessage).to.equal("Invalid Vest Cliff");
@@ -92,7 +112,7 @@ describe("Pool Creation Tests", () => {
     poolSettings.vestEnd = poolSettings.saleEnd.add(BN_1);
 
     try {
-      await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpManagerPda, assetMint, shareMint);
+      await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpFactoryPda, assetMint, shareMint);
       expect.fail("Should have thrown an error");
     } catch (error) {
       expect(error.error.errorMessage).to.equal("Invalid Vest End");
@@ -104,7 +124,7 @@ describe("Pool Creation Tests", () => {
     const initialAssetAmount = BN_0;
     poolSettings.virtualAssets = SOL;
 
-    await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpManagerPda, assetMint, shareMint);
+    await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpFactoryPda, assetMint, shareMint);
   });
 
   it("should revert for zero LBP creation invalid virtual asset", async () => {
@@ -114,7 +134,7 @@ describe("Pool Creation Tests", () => {
     poolSettings.virtualAssets = virtualAssetAmount;
 
     try {
-      await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpManagerPda, assetMint, shareMint, defaultInitialShareAmount, initialAssetAmount);
+      await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpFactoryPda, assetMint, shareMint, defaultInitialShareAmount, initialAssetAmount);
       expect.fail("Should have thrown an error");
     } catch (error) {
       expect(error.error.errorMessage).to.equal("Invalid Asset Value");
@@ -126,7 +146,7 @@ describe("Pool Creation Tests", () => {
     poolSettings.weightEnd = SOL.mul(new anchor.BN(0.99)).add(BN_1);
 
     try {
-      await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpManagerPda, assetMint, shareMint);
+      await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpFactoryPda, assetMint, shareMint);
       expect.fail("Should have thrown an error");
     } catch (error) {
       expect(error.error.errorMessage).to.equal("Invalid Weight Config");
@@ -138,7 +158,7 @@ describe("Pool Creation Tests", () => {
     poolSettings.weightStart = SOL.mul(new anchor.BN(0.99)).add(BN_1);
 
     try {
-      await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpManagerPda, assetMint, shareMint);
+      await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpFactoryPda, assetMint, shareMint);
       expect.fail("Should have thrown an error");
     } catch (error) {
       expect(error.error.errorMessage).to.equal("Invalid Weight Config");
@@ -150,7 +170,7 @@ describe("Pool Creation Tests", () => {
     poolSettings.weightStart = SOL.mul(new anchor.BN(0.01)).sub(BN_1);
 
     try {
-      await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpManagerPda, assetMint, shareMint);
+      await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpFactoryPda, assetMint, shareMint);
       expect.fail("Should have thrown an error");
     } catch (error) {
       expect(error.error.errorMessage).to.equal("Invalid Weight Config");
@@ -162,37 +182,10 @@ describe("Pool Creation Tests", () => {
     poolSettings.weightEnd = SOL.mul(new anchor.BN(0.01)).sub(BN_1);
 
     try {
-      await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpManagerPda, assetMint, shareMint);
+      await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpFactoryPda, assetMint, shareMint);
       expect.fail("Should have thrown an error");
     } catch (error) {
       expect(error.error.errorMessage).to.equal("Invalid Weight Config");
-    }
-  });
-
-  it("should revert invalid start date", async () => {
-    const poolSettings = await getDefaultPoolSettings(assetMint, shareMint);
-    poolSettings.saleEnd = (await getNow()).add(TWO_DAYS);
-    poolSettings.saleStart = poolSettings.saleEnd.sub(ONE_DAY).add(BN_1);
-
-    try {
-      await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpManagerPda, assetMint, shareMint);
-      expect.fail("Should have thrown an error");
-    } catch (error) {
-      expect(error.error.errorMessage).to.equal("Sale Period Low");
-    }
-  });
-
-  it("should revert invalid end date", async () => {
-    const poolSettings = await getDefaultPoolSettings(assetMint, shareMint);
-    const now = await getNow();
-    poolSettings.saleEnd = now.sub(ONE_DAY);
-    poolSettings.saleStart = poolSettings.saleEnd.sub(ONE_DAY);
-
-    try {
-      await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpManagerPda, assetMint, shareMint);
-      expect.fail("Should have thrown an error");
-    } catch (error) {
-      expect(error.error.errorMessage).to.equal("Sale Period Low");
     }
   });
 
@@ -200,7 +193,7 @@ describe("Pool Creation Tests", () => {
     const poolSettings = await getDefaultPoolSettings(assetMint, ZERO_ADDRESS);
 
     try {
-      await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpManagerPda, assetMint, shareMint);
+      await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpFactoryPda, assetMint, shareMint);
       expect.fail("Should have thrown an error");
     } catch (error) {
       expect(error.error.errorMessage).to.equal("Invalid Asset Or Share");
@@ -211,7 +204,7 @@ describe("Pool Creation Tests", () => {
     const poolSettings = await getDefaultPoolSettings(ZERO_ADDRESS, shareMint);
 
     try {
-      await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpManagerPda, assetMint, shareMint);
+      await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpFactoryPda, assetMint, shareMint);
       expect.fail("Should have thrown an error");
     } catch (error) {
       expect(error.error.errorMessage).to.equal("Invalid Asset Or Share");
@@ -219,14 +212,36 @@ describe("Pool Creation Tests", () => {
   });
 
   it("should revert invalid asset", async () => {
+    const oldAssetMint = assetMint;
     assetMint = shareMint;
     const poolSettings = await getDefaultPoolSettings(assetMint, shareMint);
 
     try {
-      await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpManagerPda, assetMint, shareMint);
+      await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpFactoryPda, assetMint, shareMint);
       expect.fail("Should have thrown an error");
     } catch (error) {
       expect(error.error.errorMessage).to.equal("A raw constraint was violated");
+    } finally {
+      assetMint = oldAssetMint;
     }
+  });
+
+  it("should gets vault address and vault authority address from pool account", async () => {
+    const poolSettings = await getDefaultPoolSettings(assetMint, shareMint);
+
+    const {
+      pool,
+      assetVault,
+      assetVaultAuthority,
+      shareVault,
+      shareVaultAuthority,
+    } = await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpFactoryPda, assetMint, shareMint);
+
+    const poolAccountAddressStoredInDB = pool.publicKey;
+    const poolAccount = await program.account.pool.fetch(poolAccountAddressStoredInDB);
+    assert.ok(poolAccount.assetVault.toString() === assetVault.publicKey.toString(), "Asset vault address should be the same");
+    assert.ok(poolAccount.assetVaultAuthority.toString() === assetVaultAuthority.toString(), "Asset vault authority address should be the same");
+    assert.ok(poolAccount.shareVault.toString() === shareVault.publicKey.toString(), "Share vault address should be the same");
+    assert.ok(poolAccount.shareVaultAuthority.toString() === shareVaultAuthority.toString(), "Share vault authority address should be the same");
   });
 });

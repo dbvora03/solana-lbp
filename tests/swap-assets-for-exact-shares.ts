@@ -6,7 +6,7 @@ import { ONE_DAY, SOL, closePool, createMintAndVault, createPool, createUser, cr
 
 describe("swap assets for exact shares", () => {
   /* Settings */
-  const managerId = new anchor.BN(300);
+  const factoryId = new anchor.BN(300);
   const decimals = 6; // mint decimals
   
   /* Global Variables */
@@ -23,38 +23,53 @@ describe("swap assets for exact shares", () => {
   let depositorAssetVault;
   let depositorShareVault;
 
-  let lbpManagerPda;
+  let lbpFactoryPda;
 
-  let managerShareVault;
+  let feeRecipient;
   let feeAssetVault;
   let feeShareVault;
-  let redeemRecipientShareVault;
 
-  let poolId = managerId.clone();
+  let lbpFactorySettingsAuthority;
+
+  let poolId = factoryId.clone();
 
   before(async () => {
     // funds users
     await fund(provider.wallet.publicKey);
 
+    // prepare mints
+    [assetMint, assetGod] = await createMintAndVault(
+      defaultInitialAssetAmount,
+      provider.wallet.publicKey,
+      decimals
+    );
+    [shareMint, shareGod] = await createMintAndVault(
+      defaultInitialShareAmount,
+      provider.wallet.publicKey,
+      decimals
+    );
+
+    // prepare factory settings authority
+    lbpFactorySettingsAuthority = anchor.web3.Keypair.generate();
+    await fund(lbpFactorySettingsAuthority.publicKey);
+
+    // prepare fee recipient
+    const {
+      user: _feeRecipient,
+      userAssetVault: _feeAssetVault,
+      userShareVault: _feeShareVault,
+    } = await createUser(assetMint, shareMint);
+    feeRecipient = _feeRecipient;
+    feeAssetVault = _feeAssetVault;
+    feeShareVault = _feeShareVault;
+
     // init manager
-    lbpManagerPda = await initialize(managerId);
+    lbpFactoryPda = await initialize(factoryId, feeRecipient.publicKey, lbpFactorySettingsAuthority);
   });
 
   beforeEach(async () => {
       // use a new pool id 
       poolId = poolId.add(new anchor.BN(1));
-
-      // prepare mints
-      [assetMint, assetGod] = await createMintAndVault(
-          defaultInitialAssetAmount,
-          provider.wallet.publicKey,
-          decimals
-      );
-      [shareMint, shareGod] = await createMintAndVault(
-          defaultInitialShareAmount,
-          provider.wallet.publicKey,
-          decimals
-      );
 
       // prepare buyer account
       const { 
@@ -65,12 +80,6 @@ describe("swap assets for exact shares", () => {
       buyer = _buyer;
       buyerAssetVault = _buyerAssetVault;
       buyerShareVault = _buyerShareVault;
-
-      // prepare vaults
-      managerShareVault = await createVault(shareMint);
-      feeAssetVault = await createVault(assetMint);
-      feeShareVault = await createVault(shareMint);
-      redeemRecipientShareVault = await createVault(shareMint);
 
       const { 
         user: _depositor, 
@@ -91,7 +100,7 @@ describe("swap assets for exact shares", () => {
       assetVaultAuthority,
       shareVault,
       shareVaultAuthority,
-    } = await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpManagerPda, assetMint, shareMint);
+    } = await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpFactoryPda, assetMint, shareMint);
 
     const sharesOut = SOL;
     let maxAssetsIn = await program.methods.previewAssetsIn(
@@ -100,10 +109,10 @@ describe("swap assets for exact shares", () => {
       pool: pool.publicKey,
       poolAssetsAccount: assetVault.publicKey,
       poolSharesAccount: shareVault.publicKey,
-      lbpManagerInfo: lbpManagerPda,
+      lbpFactorySetting: lbpFactoryPda,
     }).view();
 
-    let swapFees = await getSwapFees(lbpManagerPda);
+    let swapFees = await getSwapFees(lbpFactoryPda);
     swapFees = maxAssetsIn.mul(swapFees);
     maxAssetsIn = maxAssetsIn.add(swapFees);
 
@@ -125,7 +134,7 @@ describe("swap assets for exact shares", () => {
       poolSharesAccount: shareVault.publicKey,
       depositorAssetsAccount: buyerAssetVault,
       buyerStats: buyerStats,
-      lbpManagerInfo: lbpManagerPda,
+      lbpFactorySetting:lbpFactoryPda,
       tokenProgram: splToken.TOKEN_PROGRAM_ID,
       rent: SYSVAR_RENT_PUBKEY,
       systemProgram: anchor.web3.SystemProgram.programId,
@@ -161,7 +170,7 @@ describe("swap assets for exact shares", () => {
       assetVaultAuthority,
       shareVault,
       shareVaultAuthority,
-    } = await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpManagerPda, assetMint, shareMint);
+    } = await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpFactoryPda, assetMint, shareMint);
 
     const sharesOut = SOL;
     let maxAssetsIn = await program.methods.previewAssetsIn(
@@ -171,7 +180,7 @@ describe("swap assets for exact shares", () => {
       pool: pool.publicKey,
       poolAssetsAccount: assetVault.publicKey,
       poolSharesAccount: shareVault.publicKey,
-      lbpManagerInfo: lbpManagerPda,
+      lbpFactorySetting:lbpFactoryPda,
     })
     .view();
 
@@ -180,7 +189,7 @@ describe("swap assets for exact shares", () => {
       buyEvent = event;
     });
 
-    let swapFees = await getSwapFees(lbpManagerPda);
+    let swapFees = await getSwapFees(lbpFactoryPda);
     swapFees = maxAssetsIn.mul(swapFees);
     maxAssetsIn = maxAssetsIn.add(swapFees);
 
@@ -197,7 +206,7 @@ describe("swap assets for exact shares", () => {
       poolSharesAccount: shareVault.publicKey,
       depositorAssetsAccount: buyerAssetVault,
       buyerStats: buyerStats,
-      lbpManagerInfo: lbpManagerPda,
+      lbpFactorySetting:lbpFactoryPda,
       tokenProgram: splToken.TOKEN_PROGRAM_ID,
       rent: SYSVAR_RENT_PUBKEY,
       systemProgram: anchor.web3.SystemProgram.programId,
@@ -222,11 +231,11 @@ describe("swap assets for exact shares", () => {
       pool: pool.publicKey,
       poolAssetsAccount: assetVault.publicKey,
       poolSharesAccount: shareVault.publicKey,
-      lbpManagerInfo: lbpManagerPda,
+      lbpFactorySetting:lbpFactoryPda,
     })
     .view();
 
-    let swapFees2 = await getSwapFees(lbpManagerPda);
+    let swapFees2 = await getSwapFees(lbpFactoryPda);
     swapFees2 = maxAssetsIn2.mul(swapFees2);
     maxAssetsIn2 = maxAssetsIn2.add(swapFees2);
     
@@ -242,7 +251,7 @@ describe("swap assets for exact shares", () => {
       poolSharesAccount: shareVault.publicKey,
       depositorAssetsAccount: buyerAssetVault,
       buyerStats: buyerStats,
-      lbpManagerInfo: lbpManagerPda,
+      lbpFactorySetting:lbpFactoryPda,
       tokenProgram: splToken.TOKEN_PROGRAM_ID,
       rent: SYSVAR_RENT_PUBKEY,
       systemProgram: anchor.web3.SystemProgram.programId,

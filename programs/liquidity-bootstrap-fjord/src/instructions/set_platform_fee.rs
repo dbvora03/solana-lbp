@@ -8,18 +8,18 @@ const MAX_FEE_BIPS: f64 = 0.1 * 10_000.0;
 #[derive(Accounts)]
 pub struct SetPlatformFee<'info> {
   #[account(mut, has_one = authority)]
-  pub lbp_manager_info: Account<'info, LBPManagerInfo>,
+  pub lbp_factory_setting: Account<'info, LBPFactorySetting>,
   pub authority: Signer<'info>,
 }
 
 pub fn handler(ctx: Context<SetPlatformFee>, new_fee: u64) -> Result<()> {
-  let lbp_manager_info = &mut ctx.accounts.lbp_manager_info;
+  let lbp_factory_setting = &mut ctx.accounts.lbp_factory_setting;
 
   if new_fee > MAX_FEE_BIPS as u64 {
     return err!(ErrorCode::MaxFeeExceeded);
   }
 
-  lbp_manager_info.platform_fee = new_fee;
+  lbp_factory_setting.platform_fee = new_fee;
 
   emit!(PlatformFeeSet {
     platform_fee: new_fee,

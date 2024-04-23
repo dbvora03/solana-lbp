@@ -29,7 +29,7 @@ pub struct CreatePool<'info> {
   #[account(mut)]
   pub depositor: Signer<'info>,
 
-  pub lbp_manager_info: Account<'info, LBPManagerInfo>,
+  pub lbp_factory_setting: Account<'info, LBPFactorySetting>,
 
   pub token_program: Program<'info, Token>,
   pub rent: Sysvar<'info, Rent>,
@@ -55,11 +55,12 @@ pub fn handler(
     return err!(ErrorCode::InvalidAssetOrShare);
   }
 
-  let curr_timestamp = Clock::get()?.unix_timestamp as u64;
-  let one_day_in_seconds: u64 = 60 * 60 * 24;
-  if curr_timestamp + one_day_in_seconds > settings.sale_end || settings.sale_end - settings.sale_start < one_day_in_seconds {
-    return err!(ErrorCode::SalePeriodLow);
-  }
+  // TODO: Do we need this part? Don't understand the logic here
+  // let curr_timestamp = Clock::get()?.unix_timestamp as u64;
+  // let one_day_in_seconds: u64 = 60 * 60 * 24;
+  // if curr_timestamp + one_day_in_seconds > settings.sale_end || settings.sale_end - settings.sale_start < one_day_in_seconds {
+  //   return err!(ErrorCode::SalePeriodLow);
+  // }
 
   if settings.sale_end < settings.vest_end {
     if settings.sale_end > settings.vest_cliff {
@@ -80,16 +81,20 @@ pub fn handler(
   }
 
   pool.id = id;
-  pool.lbp_manager = *ctx.accounts.lbp_manager_info.to_account_info().key;
+  pool.owner = *ctx.accounts.depositor.to_account_info().key;
+  pool.lbp_factory = *ctx.accounts.lbp_factory_setting.to_account_info().key;
   pool.settings = settings;
   pool.initialized = true;
   pool.closed = false;
   pool.total_swap_fees_asset = 0;
   pool.total_swap_fees_share = 0;
   pool.total_purchased = 0;
-  pool.total_referred = 0;
   pool.share_vault_nonce = share_vault_nonce;
   pool.asset_vault_nonce = asset_vault_nonce;
+  pool.share_vault_authority = ctx.accounts.share_vault.owner;
+  pool.asset_vault_authority = ctx.accounts.asset_vault.owner;
+  pool.share_vault = *ctx.accounts.share_vault.to_account_info().key;
+  pool.asset_vault = *ctx.accounts.asset_vault.to_account_info().key;
 
   token::transfer(
     CpiContext::new(

@@ -22,16 +22,24 @@ pub struct SwapExactAssetsForShares<'info> {
 
   #[account(
     mut,
-    constraint = pool.lbp_manager == lbp_manager_info.key()
+    constraint = pool.lbp_factory == lbp_factory_setting.key()
   )]
   pub pool: Account<'info, Pool>,
 
-  pub lbp_manager_info: Account<'info, LBPManagerInfo>,
+  pub lbp_factory_setting: Account<'info, LBPFactorySetting>,
 
-  #[account(mut)]
+  #[account(
+    mut,
+    constraint = pool_share_vault.mint == pool.settings.share,
+    constraint = pool_share_vault.owner == pool.share_vault_authority,
+  )]
   pub pool_share_vault: Account<'info, TokenAccount>,
 
-  #[account(mut)]
+  #[account(
+    mut,
+    constraint = pool_asset_vault.mint == pool.settings.asset,
+    constraint = pool_asset_vault.owner == pool.asset_vault_authority,
+  )]
   pub pool_asset_vault: Account<'info, TokenAccount>,
 
   /// CHECK: This is not dangerous because we don't read or write from this account
@@ -58,13 +66,13 @@ pub fn handler(
   min_shares_out: u64,
 ) -> Result<u64> {
   let pool = &mut ctx.accounts.pool;
-  let lbp_manager_info = &mut ctx.accounts.lbp_manager_info;
+  let lbp_factory_setting = &mut ctx.accounts.lbp_factory_setting;
   let buyer_stats = &mut ctx.accounts.buyer_stats;
 
   let assets: u64 = ctx.accounts.pool_asset_vault.amount;
   let shares: u64 = ctx.accounts.pool_share_vault.amount;
   
-  let swap_fee: u64 = assets_in * (lbp_manager_info.swap_fee / 1_000_000_000);
+  let swap_fee: u64 = (assets_in * lbp_factory_setting.swap_fee) / 1_000_000_000;
   pool.total_swap_fees_asset += swap_fee;
 
   let shares_out_result = preview_shares_out(pool, assets_in, assets, shares);

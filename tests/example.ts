@@ -28,14 +28,14 @@ interface PoolSettings {
 
 const createLBPManager = async ({
   program,
-  managerId,
+  factoryId,
   feeReciever,
   platformFee,
   referrerFee,
   swapFee,
 }: {
   program: anchor.Program<LiquidityBootstrapFjord>;
-  managerId: number;
+  factoryId: number;
   feeReciever: anchor.web3.PublicKey;
   platformFee: anchor.BN;
   referrerFee: anchor.BN;
@@ -43,9 +43,9 @@ const createLBPManager = async ({
 }) => {
   // This is the account for the LBP manager
   // You need to pass this address in whenever the account references it
-  const [lbpManagerPda] = anchor.web3.PublicKey.findProgramAddressSync(
+  const [lbpFactoryPda] = anchor.web3.PublicKey.findProgramAddressSync(
     [
-      anchor.utils.bytes.utf8.encode("lbp-manager"),
+      anchor.utils.bytes.utf8.encode("lbp-factory"),
       new anchor.BN(1).toArrayLike(Buffer, "le", 8),
     ],
     program.programId
@@ -53,7 +53,7 @@ const createLBPManager = async ({
 
   await program.methods
     .initialize(
-      new anchor.BN(managerId),
+      new anchor.BN(factoryId),
       feeReciever,
       platformFee,
       referrerFee,
@@ -61,48 +61,48 @@ const createLBPManager = async ({
     )
     .accounts({
       authority: feeReciever,
-      lbpManagerInfo: lbpManagerPda,
+      lbpFactorySetting:lbpFactoryPda,
     })
     .rpc();
 
-  return lbpManagerPda;
+  return lbpFactoryPda;
 };
 
 const getLBPManager = async (
   program: anchor.Program<LiquidityBootstrapFjord>,
   id: number
 ) => {
-  const [lbpManagerPda] = anchor.web3.PublicKey.findProgramAddressSync(
+  const [lbpFactoryPda] = anchor.web3.PublicKey.findProgramAddressSync(
     [
-      anchor.utils.bytes.utf8.encode("lbp-manager"),
+      anchor.utils.bytes.utf8.encode("lbp-factory"),
       new anchor.BN(id).toArrayLike(Buffer, "le", 8),
     ],
     program.programId
   );
 
-  const lbpManagerInfoAccount = await program.account.lbpManagerInfo.fetch(
-    lbpManagerPda
+  const LBPFactorySettingAccount = await program.account.lbpFactorySetting.fetch(
+    lbpFactoryPda
   );
 
-  return lbpManagerInfoAccount;
+  return LBPFactorySettingAccount;
 };
 
 const setPlatformFee = async ({
   program,
   signer,
   newFee,
-  lbpManagerPda,
+  lbpFactoryPda,
 }: {
   program: anchor.Program<LiquidityBootstrapFjord>;
   signer: anchor.web3.Keypair;
   newFee: anchor.BN;
-  lbpManagerPda: anchor.web3.PublicKey;
+  lbpFactoryPda: anchor.web3.PublicKey;
 }) => {
   return await program.methods
     .setPlatformFee(newFee)
     .accounts({
       authority: signer.publicKey,
-      lbpManagerInfo: lbpManagerPda,
+      lbpFactorySetting:lbpFactoryPda,
     })
     .signers([signer])
     .rpc();
@@ -112,18 +112,18 @@ const setReferrerFee = async ({
   program,
   signer,
   newFee,
-  lbpManagerPda,
+  lbpFactoryPda,
 }: {
   program: anchor.Program<LiquidityBootstrapFjord>;
   signer: anchor.web3.Keypair;
   newFee: anchor.BN;
-  lbpManagerPda: anchor.web3.PublicKey;
+  lbpFactoryPda: anchor.web3.PublicKey;
 }) => {
   return await program.methods
     .setReferrerFee(newFee)
     .accounts({
       authority: signer.publicKey,
-      lbpManagerInfo: lbpManagerPda,
+      lbpFactorySetting:lbpFactoryPda,
     })
     .signers([signer])
     .rpc();
@@ -133,18 +133,18 @@ const setSwapFee = async ({
   program,
   signer,
   newFee,
-  lbpManagerPda,
+  lbpFactoryPda,
 }: {
   program: anchor.Program<LiquidityBootstrapFjord>;
   signer: anchor.web3.Keypair;
   newFee: anchor.BN;
-  lbpManagerPda: anchor.web3.PublicKey;
+  lbpFactoryPda: anchor.web3.PublicKey;
 }) => {
   return await program.methods
     .setSwapFee(newFee)
     .accounts({
       authority: signer.publicKey,
-      lbpManagerInfo: lbpManagerPda,
+      lbpFactorySetting:lbpFactoryPda,
     })
     .signers([signer])
     .rpc();
@@ -154,18 +154,18 @@ const setFeeRecipient = async ({
   program,
   signer,
   feeRecipient,
-  lbpManagerPda,
+  lbpFactoryPda,
 }: {
   program: anchor.Program<LiquidityBootstrapFjord>;
   signer: anchor.web3.Keypair;
   feeRecipient: anchor.web3.PublicKey;
-  lbpManagerPda: anchor.web3.PublicKey;
+  lbpFactoryPda: anchor.web3.PublicKey;
 }) => {
   return await program.methods
     .setFeeRecipient(feeRecipient)
     .accounts({
       authority: signer.publicKey,
-      lbpManagerInfo: lbpManagerPda,
+      lbpFactorySetting:lbpFactoryPda,
     })
     .signers([signer])
     .rpc();
@@ -175,12 +175,12 @@ const transferOwnership = async ({
   program,
   signer,
   newOwner,
-  lbpManagerId,
+  lbpfactoryId,
 }) => {
-  const [lbpManagerPda] = anchor.web3.PublicKey.findProgramAddressSync(
+  const [lbpFactoryPda] = anchor.web3.PublicKey.findProgramAddressSync(
     [
-      anchor.utils.bytes.utf8.encode("lbp-manager"),
-      new anchor.BN(lbpManagerId).toArrayLike(Buffer, "le", 8),
+      anchor.utils.bytes.utf8.encode("lbp-factory"),
+      new anchor.BN(lbpfactoryId).toArrayLike(Buffer, "le", 8),
     ],
     program.programId
   );
@@ -189,7 +189,7 @@ const transferOwnership = async ({
     .transferOwnership(newOwner)
     .accounts({
       authority: signer.publicKey,
-      lbpManagerInfo: lbpManagerPda,
+      lbpFactorySetting:lbpFactoryPda,
     })
     .signers([signer])
     .rpc();
@@ -226,7 +226,7 @@ const createPool = async (
   depositorAssetVault: anchor.web3.PublicKey,
   depositorShareVault: anchor.web3.PublicKey,
   depositor: anchor.web3.Keypair,
-  lbpManagerPda: anchor.web3.PublicKey,
+  lbpFactoryPda: anchor.web3.PublicKey,
   assetMint: anchor.web3.PublicKey,
   shareMint: anchor.web3.PublicKey,
   initialShareAmount: anchor.BN,
@@ -282,7 +282,7 @@ const createPool = async (
           depositorAssetVault: depositorAssetVault,
           depositorShareVault: depositorShareVault,
           depositor: depositor.publicKey,
-          lbpManagerInfo: lbpManagerPda,
+          lbpFactorySetting:lbpFactoryPda,
           tokenProgram: splToken.TOKEN_PROGRAM_ID,
           rent: SYSVAR_RENT_PUBKEY,
           systemProgram: anchor.web3.SystemProgram.programId,
@@ -323,7 +323,7 @@ const swapAssetsForExactShares = async ({
 
   depositor,
   pool,
-  lbpManagerPda,
+  lbpFactoryPda,
   poolAssetsAccount,
   poolSharesAccount,
   depositorAssetsAccount,
@@ -336,7 +336,7 @@ const swapAssetsForExactShares = async ({
 
   depositor: anchor.web3.Keypair;
   pool: anchor.web3.PublicKey;
-  lbpManagerPda: anchor.web3.PublicKey;
+  lbpFactoryPda: anchor.web3.PublicKey;
   poolAssetsAccount: anchor.web3.PublicKey;
   poolSharesAccount: anchor.web3.PublicKey;
   depositorAssetsAccount: anchor.web3.PublicKey;
@@ -353,7 +353,7 @@ const swapAssetsForExactShares = async ({
     poolSharesAccount: poolSharesAccount,
     depositorAssetsAccount: depositorAssetsAccount,
     buyerStats: depositorUserStats,
-    lbpManagerInfo: lbpManagerPda,
+    lbpFactorySetting:lbpFactoryPda,
     tokenProgram: splToken.TOKEN_PROGRAM_ID,
     rent: SYSVAR_RENT_PUBKEY,
     systemProgram: anchor.web3.SystemProgram.programId,
@@ -408,9 +408,9 @@ describe("lbp-examples", async () => {
 
   it("Example", async () => {
     // Create an LBP Manager
-    const lbpManagerPda = await createLBPManager({
+    const lbpFactoryPda = await createLBPManager({
       program,
-      managerId: 1,
+      factoryId: 1,
       feeReciever: fee_recipient,
       platformFee: new anchor.BN(1000),
       referrerFee: new anchor.BN(1000),
@@ -418,14 +418,14 @@ describe("lbp-examples", async () => {
     });
 
     // Use this to get info about the LBP Manager
-    const lbpManagerInfo = await getLBPManager(program, 1);
+    const LBPFactorySetting = await getLBPManager(program, 1);
 
     // Set platform fee
     setPlatformFee({
       program,
       signer: depositor,
       newFee: new anchor.BN(1000),
-      lbpManagerPda,
+      lbpFactoryPda,
     });
 
     // Set Referrer fee
@@ -433,7 +433,7 @@ describe("lbp-examples", async () => {
       program,
       signer: depositor,
       newFee: new anchor.BN(1000),
-      lbpManagerPda,
+      lbpFactoryPda,
     });
 
     // Set Swap fee
@@ -441,21 +441,21 @@ describe("lbp-examples", async () => {
       program,
       signer: depositor,
       newFee: new anchor.BN(1000),
-      lbpManagerPda,
+      lbpFactoryPda,
     });
 
     setFeeRecipient({
       program,
       signer: depositor,
       feeRecipient: fee_recipient,
-      lbpManagerPda,
+      lbpFactoryPda,
     });
 
     transferOwnership({
       program,
       signer: depositor,
       newOwner: fee_recipient,
-      lbpManagerId: 1,
+      lbpfactoryId: 1,
     });
 
     // Create a pool
@@ -494,7 +494,7 @@ describe("lbp-examples", async () => {
       depositorAssetVault, 
       depositorShareVault,
       depositor,
-      lbpManagerPda,
+      lbpFactoryPda,
       assetMint,
       shareMint,
       initialShareAmount,
@@ -521,7 +521,7 @@ describe("lbp-examples", async () => {
       pool: pool.publicKey,
       poolAssetsAccount: assetVault.publicKey,
       poolSharesAccount: shareVault.publicKey,
-      lbpManagerInfo: lbpManagerPda,
+      lbpFactorySetting:lbpFactoryPda,
     })
     .view();
 
@@ -533,7 +533,7 @@ describe("lbp-examples", async () => {
       maxAssetsIn: new anchor.BN(1000),
       depositor,
       pool: pool.publicKey,
-      lbpManagerPda,
+      lbpFactoryPda,
       poolAssetsAccount: poolAssetKp.publicKey,
       poolSharesAccount: poolShareKp.publicKey,
       depositorAssetsAccount: depositorAssetVault,
@@ -553,7 +553,7 @@ describe("lbp-examples", async () => {
       managerShareVault,
       feeShareVault,
       feeAssetVault,
-      lbpManagerPda
+      lbpFactoryPda
     );
   });
 });

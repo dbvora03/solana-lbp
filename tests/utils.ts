@@ -121,11 +121,14 @@ export const fund = async (pubkey) => {
     });
 };
 
-export const createVault = async (mint) => {
+export const createVault = async (
+    mint,
+    owner = provider.wallet.publicKey
+) => {
     return await createTokenAccount(
         provider,
         mint,
-        provider.wallet.publicKey
+        owner
     );
 };
 
@@ -172,34 +175,35 @@ export const getDefaultPoolSettings = async (
 };
 
 export const initialize = async (
-    managerId: anchor.BN,
+    factoryId: anchor.BN,
+    fee_recipient: anchor.web3.PublicKey,
+    lbpFactorySettingsAuthority: anchor.web3.Keypair
 ) => {
-    const [lbpManagerPda] = anchor.web3.PublicKey.findProgramAddressSync(
+    const [lbpFactoryPda] = anchor.web3.PublicKey.findProgramAddressSync(
         [
-          anchor.utils.bytes.utf8.encode("lbp-manager"),
-          managerId.toArrayLike(Buffer, "le", 8),
+          anchor.utils.bytes.utf8.encode("lbp-factory"),
+          factoryId.toArrayLike(Buffer, "le", 8),
         ],
         program.programId
     );
   
     // initialize pool factory
-    const fee_recipient = provider.wallet.publicKey;
-
     await program.methods
     .initialize(
-        managerId,
+        factoryId,
         fee_recipient,
         new anchor.BN(1000),
         new anchor.BN(1000),
         new anchor.BN(1000)
     )
     .accounts({
-        authority: fee_recipient,
-        lbpManagerInfo: lbpManagerPda,
+        authority: lbpFactorySettingsAuthority.publicKey,
+        lbpFactorySetting: lbpFactoryPda,
     })
+    .signers([lbpFactorySettingsAuthority])
     .rpc();
     
-    return lbpManagerPda;
+    return lbpFactoryPda;
 }
 
 export const createPool = async (
@@ -208,7 +212,7 @@ export const createPool = async (
     depositorAssetVault: anchor.web3.PublicKey,
     depositorShareVault: anchor.web3.PublicKey,
     depositor: anchor.web3.Keypair,
-    lbpManagerPda: anchor.web3.PublicKey,
+    lbpFactoryPda: anchor.web3.PublicKey,
     assetMint: anchor.web3.PublicKey,
     shareMint: anchor.web3.PublicKey,
     initialShareAmount: anchor.BN = defaultInitialShareAmount,
@@ -264,7 +268,7 @@ export const createPool = async (
             depositorAssetVault: depositorAssetVault,
             depositorShareVault: depositorShareVault,
             depositor: depositor.publicKey,
-            lbpManagerInfo: lbpManagerPda,
+            lbpFactorySetting: lbpFactoryPda,
             tokenProgram: splToken.TOKEN_PROGRAM_ID,
             rent: SYSVAR_RENT_PUBKEY,
             systemProgram: anchor.web3.SystemProgram.programId,
@@ -281,9 +285,9 @@ export const createPool = async (
     }
 }
 
-export const getSwapFees = async (lbpManagerPda) => {
-    const lbpManagerInfoAccount = await program.account.lbpManagerInfo.fetch(lbpManagerPda);
-    return lbpManagerInfoAccount.swapFee;
+export const getSwapFees = async (lbpFactoryPda) => {
+    const LBPFactorySettingAccount = await program.account.lbpFactorySetting.fetch(lbpFactoryPda);
+    return LBPFactorySettingAccount.swapFee;
 }
 
 /* Pool Methods */
@@ -294,10 +298,11 @@ export const closePool = async (
     assetVaultAuthority,
     shareVault, 
     shareVaultAuthority,
-    managerShareVault,
-    feeShareVault,
-    feeAssetVault,
-    lbpManagerPda
+    poolOwnerAssetVault,
+    poolOwnerShareVault,
+    feeRecipientShareVault,
+    feeRecipientAssetVault,
+    lbpFactoryPda
 ) => {
     
     await program.methods.close().accounts({
@@ -306,10 +311,11 @@ export const closePool = async (
         assetVaultAuthority,
         shareVault,
         shareVaultAuthority,
-        managerShareVault,
-        feeAssetVault,
-        feeShareVault,
-        lbpManagerInfo: lbpManagerPda,
+        poolOwnerAssetVault,
+        poolOwnerShareVault,
+        feeRecipientAssetVault,
+        feeRecipientShareVault,
+        lbpFactorySetting:lbpFactoryPda,
         
         tokenProgram: splToken.TOKEN_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
@@ -324,7 +330,7 @@ export const swapExactAssetsForShares = async (
     shareVault,
     assetVault,
     depositorAssetVault,
-    lbpManagerPda,
+    lbpFactoryPda,
     buyerStats
 
 ) => {
@@ -338,7 +344,7 @@ export const swapExactAssetsForShares = async (
       .accounts({
         depositor: buyer.publicKey,
         pool: pool.publicKey,
-        lbpManagerInfo: lbpManagerPda,
+        lbpFactorySetting:lbpFactoryPda,
         poolShareVault: shareVault,
         poolAssetVault: assetVault,
         depositorAssetVault: depositorAssetVault,
@@ -451,3 +457,13 @@ export const getNow = async () => {
     )   
     return now;
 };
+
+export const getVaultBalance = async (
+    vault: anchor.web3.PublicKey
+) => {
+    const accountInfo = await splToken.getAccount(
+        provider.connection,
+        vault
+    );
+    return new anchor.BN(accountInfo.amount.toString());
+}

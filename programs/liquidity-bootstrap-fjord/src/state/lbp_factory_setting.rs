@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 
 #[account]
-pub struct LBPManagerInfo {
+pub struct LBPFactorySetting {
   pub id: u64, // 8
   pub authority: Pubkey, // 32
   pub fee_recipient: Pubkey, // 32
