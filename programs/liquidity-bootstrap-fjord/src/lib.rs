@@ -105,5 +105,9 @@ pub mod liquidity_bootstrap_fjord {
     pub fn close(ctx: Context<Close>) -> Result<()> {
         instructions::close::handler(ctx)
     }
+
+    pub fn compute_reserves_and_weights(ctx: Context<ComputeReservesAndWeights>) -> Result<ComputeReservesAndWeightsOutput> {
+        instructions::compute_reserves_and_weights::handler(ctx)
+    }
 }
 
