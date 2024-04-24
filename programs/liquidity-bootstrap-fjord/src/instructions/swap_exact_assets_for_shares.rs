@@ -4,15 +4,6 @@ use crate::state::*;
 use crate::utils::*;
 use crate::errors::ErrorCode;
 
-
-#[event]
-pub struct Buy {
-  pub caller: Pubkey,
-  pub assets: u64,
-  pub shares: u64,
-  pub swap_fee: u64,
-}
-
 #[derive(Accounts)]
 #[instruction(recipient: Pubkey)]
 pub struct SwapExactAssetsForShares<'info> {
@@ -52,10 +43,10 @@ pub struct SwapExactAssetsForShares<'info> {
 
   #[account(   
     mut,
-    seeds = [b"user_stats".as_ref(), pool.key().as_ref(), depositor.key().as_ref()],
-    bump = buyer_stats.bump,
+    seeds = [b"user_stats".as_ref(), pool.key().as_ref(), recipient.as_ref()],
+    bump = recipient_user_stats.bump,
   )]
-  pub buyer_stats: Box<Account<'info, UserStats>>,
+  pub recipient_user_stats: Box<Account<'info, UserStats>>,
 
   pub token_program: Program<'info, Token>,
   pub rent: Sysvar<'info, Rent>,
@@ -71,7 +62,7 @@ pub fn handler(
 ) -> Result<u64> {
   let pool = &mut ctx.accounts.pool;
   let lbp_factory_setting = &mut ctx.accounts.lbp_factory_setting;
-  let buyer_stats = &mut ctx.accounts.buyer_stats;
+  let recipient_user_stats = &mut ctx.accounts.recipient_user_stats;
 
   let assets: u64 = ctx.accounts.pool_asset_vault.amount;
   let shares: u64 = ctx.accounts.pool_share_vault.amount;
@@ -113,10 +104,11 @@ pub fn handler(
   }
 
   pool.total_purchased = total_purchased_after;
-  buyer_stats.purchased += shares_out;
+  recipient_user_stats.purchased += shares_out;
 
   emit!(Buy {
     caller: *ctx.accounts.depositor.key,
+    recipient: recipient,
     assets: assets_in,
     shares: shares_out,
     swap_fee: swap_fee,

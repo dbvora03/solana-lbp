@@ -32,6 +32,7 @@ pub struct FeeRecipientSet {
 #[event]
 pub struct Buy {
   pub caller: Pubkey,
+  pub recipient: Pubkey,
   pub assets: u64,
   pub shares: u64,
   pub swap_fee: u64,

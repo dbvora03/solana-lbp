@@ -38,10 +38,10 @@ pub struct SwapAssetsForExactShares<'info> {
 
   #[account(
     mut,
-    seeds = [b"user_stats".as_ref(), pool.key().as_ref(), depositor.key().as_ref()],
-    bump = buyer_stats.bump,
+    seeds = [b"user_stats".as_ref(), pool.key().as_ref(), recipient.as_ref()],
+    bump = recipient_user_stats.bump,
   )]
-  pub buyer_stats: Box<Account<'info, UserStats>>,
+  pub recipient_user_stats: Box<Account<'info, UserStats>>,
 
   pub lbp_factory_setting: Account<'info, LBPFactorySetting>,
   pub token_program: Program<'info, Token>,
@@ -56,10 +56,11 @@ pub fn handler (
 ) -> Result<u64> {
   // Get the pool and manager
   let pool = &mut ctx.accounts.pool;
-  let manager = &mut ctx.accounts.lbp_factory_setting;
-  let buyer_stats = &mut ctx.accounts.buyer_stats;
+  let factory_setting = &mut ctx.accounts.lbp_factory_setting;
+  let recipient_user_stats = &mut ctx.accounts.recipient_user_stats;
   let assets: u64 = ctx.accounts.pool_assets_account.amount;
   let shares: u64 = ctx.accounts.pool_shares_account.amount;
+  
   // Preview the assets in
   let assets_in_result = preview_assets_in(pool, shares_out, assets, shares);
   if assets_in_result.is_err() {
@@ -67,7 +68,7 @@ pub fn handler (
   }
   let mut assets_in = assets_in_result.unwrap();
 
-  let swap_fees: u64 = assets_in * manager.swap_fee;
+  let swap_fees: u64 = (assets_in * factory_setting.swap_fee) / 1_000_000_000;
   assets_in += swap_fees;
   pool.total_swap_fees_asset += swap_fees;
 
@@ -97,10 +98,11 @@ pub fn handler (
     return err!(ErrorCode::MaxSharesExceeded);
   }
   pool.total_purchased = total_purchased_after;
-  buyer_stats.purchased += shares_out;
+  recipient_user_stats.purchased += shares_out;
 
   emit!(Buy {
     caller: *ctx.accounts.depositor.key,
+    recipient: recipient,
     assets: assets_in,
     shares: shares_out,
     swap_fee: swap_fees,
