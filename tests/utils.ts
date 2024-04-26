@@ -349,7 +349,7 @@ export const swapExactAssetsForShares = async (
         poolAssetVault: assetVault,
         depositorAssetVault: depositorAssetVault,
         // depositorAssetVaultAuthority,
-        buyerStats,
+        recipientUserStats: buyerStats,
 
         tokenProgram: splToken.TOKEN_PROGRAM_ID,
         rent: SYSVAR_RENT_PUBKEY,

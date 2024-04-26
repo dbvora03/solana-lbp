@@ -70,7 +70,7 @@ pub fn handler(
 ) -> Result<u64> {
 
   let pool = &mut ctx.accounts.pool;
-  let manager = &mut ctx.accounts.lbp_factory_setting;
+  let factory_setting = &mut ctx.accounts.lbp_factory_setting;
 
   let assets: u64 = ctx.accounts.pool_assets_account.amount;
   let shares: u64 = ctx.accounts.pool_shares_account.amount;
@@ -84,7 +84,7 @@ pub fn handler(
 
   let mut shares_in: u64 = shares_in_result.unwrap();
 
-  let swap_fee = shares_in * manager.swap_fee;
+  let swap_fee = (shares_in * factory_setting.swap_fee) / 1_000_000_000;
   shares_in += swap_fee;
 
   if shares_in > max_shares_in {

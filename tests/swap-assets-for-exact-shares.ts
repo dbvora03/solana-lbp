@@ -91,7 +91,7 @@ describe("swap assets for exact shares", () => {
       depositorShareVault = _depositorShareVault;
   });
   
-  it("test swap assets for exact shares 5", async () => {
+  it("test swap assets for exact shares with recipient = depositor", async () => {
     const poolSettings = await getDefaultPoolSettings(assetMint, shareMint);
 
     const {
@@ -113,7 +113,7 @@ describe("swap assets for exact shares", () => {
     }).view();
 
     let swapFees = await getSwapFees(lbpFactoryPda);
-    swapFees = maxAssetsIn.mul(swapFees);
+    swapFees = maxAssetsIn.mul(swapFees).div(SOL);
     maxAssetsIn = maxAssetsIn.add(swapFees);
 
     let buyEvent = null;
@@ -133,7 +133,7 @@ describe("swap assets for exact shares", () => {
       poolAssetsAccount: assetVault.publicKey,
       poolSharesAccount: shareVault.publicKey,
       depositorAssetsAccount: buyerAssetVault,
-      buyerStats: buyerStats,
+      recipientUserStats: buyerStats,
       lbpFactorySetting:lbpFactoryPda,
       tokenProgram: splToken.TOKEN_PROGRAM_ID,
       rent: SYSVAR_RENT_PUBKEY,
@@ -147,10 +147,10 @@ describe("swap assets for exact shares", () => {
       const sharesOut = buyEvent.shares;
 
       const poolAssetAmount = (await provider.connection.getTokenAccountBalance(assetVault.publicKey)).value.amount;
-      assert.ok(poolAssetAmount == new anchor.BN(assetsIn).add(defaultInitialAssetAmount).toString(), "assetsIn");
-      assert.ok(maxAssetsIn.toString() == assetsIn, "assetsIn");
+      assert.ok(poolAssetAmount == new anchor.BN(assetsIn).add(defaultInitialAssetAmount).toString(), "pool asset amount");
+      assert.ok(maxAssetsIn.toString() == assetsIn, "max assets in");
       const lbpAccount = await program.account.pool.fetch(pool.publicKey);
-      assert.ok(lbpAccount.totalPurchased.toString() == sharesOut.toString(), "totalPurchased");
+      assert.ok(lbpAccount.totalPurchased.toString() == sharesOut.toString(), "total purchased");
       const buyerStatsAccount = await program.account.userStats.fetch(buyerStats);
       assert.ok(buyerStatsAccount.purchased.toString() == sharesOut.toString(), "purchased");
     } else {
@@ -159,6 +159,79 @@ describe("swap assets for exact shares", () => {
 
     program.removeEventListener(id);
 
+  });
+
+  it("test swap assets for exact shares with recipient != depositor", async () => {
+    const poolSettings = await getDefaultPoolSettings(assetMint, shareMint);
+
+    const {
+      pool,
+      assetVault,
+      assetVaultAuthority,
+      shareVault,
+      shareVaultAuthority,
+    } = await createPool(poolId, poolSettings, depositorAssetVault, depositorShareVault, depositor, lbpFactoryPda, assetMint, shareMint);
+
+    const sharesOut = SOL;
+    let maxAssetsIn = await program.methods.previewAssetsIn(
+      sharesOut
+    ).accounts({
+      pool: pool.publicKey,
+      poolAssetsAccount: assetVault.publicKey,
+      poolSharesAccount: shareVault.publicKey,
+      lbpFactorySetting: lbpFactoryPda,
+    }).view();
+
+    let swapFees = await getSwapFees(lbpFactoryPda);
+    swapFees = maxAssetsIn.mul(swapFees).div(SOL);
+    maxAssetsIn = maxAssetsIn.add(swapFees);
+
+    let buyEvent = null;
+    const id = program.addEventListener('Buy', (event, slot) => {
+      buyEvent = event;
+    });
+
+    const {
+      user: sharesRecipient,
+    } = await createUser(assetMint, shareMint);
+
+    const { userStats: sharesRecipientUserStats } = await createUserStats(pool.publicKey, sharesRecipient);
+    
+    await program.methods.swapAssetsForExactShares(
+      sharesRecipient.publicKey,
+      sharesOut,
+      maxAssetsIn,
+    ).accounts({
+      depositor: buyer.publicKey,
+      pool: pool.publicKey,
+      poolAssetsAccount: assetVault.publicKey,
+      poolSharesAccount: shareVault.publicKey,
+      depositorAssetsAccount: buyerAssetVault,
+      recipientUserStats: sharesRecipientUserStats,
+      lbpFactorySetting:lbpFactoryPda,
+      tokenProgram: splToken.TOKEN_PROGRAM_ID,
+      rent: SYSVAR_RENT_PUBKEY,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    })
+    .signers([buyer])
+    .rpc();
+
+    if (buyEvent) {
+      const assetsIn = buyEvent.assets;
+      const sharesOut = buyEvent.shares;
+
+      const poolAssetAmount = (await provider.connection.getTokenAccountBalance(assetVault.publicKey)).value.amount;
+      assert.ok(poolAssetAmount == new anchor.BN(assetsIn).add(defaultInitialAssetAmount).toString(), "pool asset amount");
+      assert.ok(maxAssetsIn.toString() == assetsIn, "max assets in");
+      const lbpAccount = await program.account.pool.fetch(pool.publicKey);
+      assert.ok(lbpAccount.totalPurchased.toString() == sharesOut.toString(), "total purchased");
+      const sharesRecipientUserStatsInfo = await program.account.userStats.fetch(sharesRecipientUserStats);
+      assert.ok(sharesRecipientUserStatsInfo.purchased.toString() == sharesOut.toString(), "purchased");
+    } else {
+      expect.fail('Buy event not emitted');
+    }
+
+    program.removeEventListener(id);
   });
 
   it("test second swap", async () => {
@@ -190,7 +263,7 @@ describe("swap assets for exact shares", () => {
     });
 
     let swapFees = await getSwapFees(lbpFactoryPda);
-    swapFees = maxAssetsIn.mul(swapFees);
+    swapFees = maxAssetsIn.mul(swapFees).div(SOL);
     maxAssetsIn = maxAssetsIn.add(swapFees);
 
     const { userStats: buyerStats } = await createUserStats(pool.publicKey, buyer);
@@ -205,7 +278,7 @@ describe("swap assets for exact shares", () => {
       poolAssetsAccount: assetVault.publicKey,
       poolSharesAccount: shareVault.publicKey,
       depositorAssetsAccount: buyerAssetVault,
-      buyerStats: buyerStats,
+      recipientUserStats: buyerStats,
       lbpFactorySetting:lbpFactoryPda,
       tokenProgram: splToken.TOKEN_PROGRAM_ID,
       rent: SYSVAR_RENT_PUBKEY,
@@ -236,9 +309,8 @@ describe("swap assets for exact shares", () => {
     .view();
 
     let swapFees2 = await getSwapFees(lbpFactoryPda);
-    swapFees2 = maxAssetsIn2.mul(swapFees2);
+    swapFees2 = maxAssetsIn2.mul(swapFees2).div(SOL);
     maxAssetsIn2 = maxAssetsIn2.add(swapFees2);
-    
 
     await program.methods.swapAssetsForExactShares(
       buyer.publicKey,
@@ -250,7 +322,7 @@ describe("swap assets for exact shares", () => {
       poolAssetsAccount: assetVault.publicKey,
       poolSharesAccount: shareVault.publicKey,
       depositorAssetsAccount: buyerAssetVault,
-      buyerStats: buyerStats,
+      recipientUserStats: buyerStats,
       lbpFactorySetting:lbpFactoryPda,
       tokenProgram: splToken.TOKEN_PROGRAM_ID,
       rent: SYSVAR_RENT_PUBKEY,
