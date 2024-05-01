@@ -76,6 +76,14 @@ pub fn handler(
   let shares: u64 = ctx.accounts.pool_shares_account.amount;
   let buyer_stats = &mut ctx.accounts.buyer_stats;
 
+  if pool.closed {
+    return err!(ErrorCode::PoolIsClosed);
+  }
+
+  if pool.paused {
+    return err!(ErrorCode::PoolIsPaused);
+  }
+
   let mut shares_in_result = preview_shares_in(pool, assets_out, assets, shares);
 
   if shares_in_result.is_err() {

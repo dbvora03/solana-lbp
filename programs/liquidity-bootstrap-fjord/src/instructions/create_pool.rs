@@ -86,6 +86,7 @@ pub fn handler(
   pool.settings = settings;
   pool.initialized = true;
   pool.closed = false;
+  pool.paused = false;
   pool.total_swap_fees_asset = 0;
   pool.total_swap_fees_share = 0;
   pool.total_purchased = 0;

@@ -50,4 +50,13 @@ pub enum ErrorCode {
 
   #[msg("No Shares To Claim")]
   NoSharesToClaim,
+
+  #[msg("Unauthorized")]
+  Unauthorized,
+
+  #[msg("Pool is paused")]
+  PoolIsPaused,
+
+  #[msg("Pool is closed")]
+  PoolIsClosed,
 }

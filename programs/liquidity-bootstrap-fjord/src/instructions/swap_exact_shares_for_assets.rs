@@ -75,6 +75,14 @@ pub fn handler(
   let shares: u64 = ctx.accounts.pool_shares_account.amount;
   let buyer_stats = &mut ctx.accounts.buyer_stats;
 
+  if pool.closed {
+    return err!(ErrorCode::PoolIsClosed);
+  }
+
+  if pool.paused {
+    return err!(ErrorCode::PoolIsPaused);
+  }
+
   let swap_fee = (shares_in * factory_setting.swap_fee) / 1_000_000_000;
   pool.total_swap_fees_share += swap_fee;
 

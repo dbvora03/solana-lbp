@@ -66,6 +66,14 @@ pub fn handler(
 
   let assets: u64 = ctx.accounts.pool_asset_vault.amount;
   let shares: u64 = ctx.accounts.pool_share_vault.amount;
+
+  if pool.closed {
+    return err!(ErrorCode::PoolIsClosed);
+  }
+
+  if pool.paused {
+    return err!(ErrorCode::PoolIsPaused);
+  }
   
   let swap_fee: u64 = (assets_in * lbp_factory_setting.swap_fee) / 1_000_000_000;
   pool.total_swap_fees_asset += swap_fee;
