@@ -331,7 +331,9 @@ export const swapExactAssetsForShares = async (
     assetVault,
     depositorAssetVault,
     lbpFactoryPda,
-    buyerStats
+    buyerStats,
+    assetMint,
+    shareMint,
 
 ) => {
     let buyEvent = null;
@@ -347,6 +349,8 @@ export const swapExactAssetsForShares = async (
         lbpFactorySetting:lbpFactoryPda,
         poolShareVault: shareVault,
         poolAssetVault: assetVault,
+        poolAssetsMint: assetMint,
+        poolSharesMint: shareMint,
         depositorAssetVault: depositorAssetVault,
         // depositorAssetVaultAuthority,
         recipientUserStats: buyerStats,

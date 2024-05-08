@@ -4,7 +4,7 @@ import { assert, expect } from "chai";
 import { SYSVAR_RENT_PUBKEY } from "@solana/web3.js";
 import { ONE_DAY, SOL, closePool, createMintAndVault, createPool, createUser, createUserStats, createVault, defaultInitialAssetAmount, defaultInitialShareAmount, fund, getDefaultPoolSettings, getNow, getSwapFees, initialize, program, provider, swapExactAssetsForShares } from "./utils";
 
-describe.only("swap assets for exact shares", () => {
+describe("swap assets for exact shares", () => {
   /* Settings */
   const factoryId = new anchor.BN(300);
   const decimals = 6; // mint decimals
@@ -109,6 +109,8 @@ describe.only("swap assets for exact shares", () => {
       pool: pool.publicKey,
       poolAssetsAccount: assetVault.publicKey,
       poolSharesAccount: shareVault.publicKey,
+      poolAssetsMint: assetMint,
+      poolSharesMint: shareMint,
       lbpFactorySetting: lbpFactoryPda,
     }).view();
 
@@ -132,6 +134,8 @@ describe.only("swap assets for exact shares", () => {
       pool: pool.publicKey,
       poolAssetsAccount: assetVault.publicKey,
       poolSharesAccount: shareVault.publicKey,
+      poolAssetsMint: assetMint,
+      poolSharesMint: shareMint,
       depositorAssetsAccount: buyerAssetVault,
       recipientUserStats: buyerStats,
       lbpFactorySetting:lbpFactoryPda,
@@ -179,6 +183,8 @@ describe.only("swap assets for exact shares", () => {
       pool: pool.publicKey,
       poolAssetsAccount: assetVault.publicKey,
       poolSharesAccount: shareVault.publicKey,
+      poolAssetsMint: assetMint,
+      poolSharesMint: shareMint,
       lbpFactorySetting: lbpFactoryPda,
     }).view();
 
@@ -206,6 +212,8 @@ describe.only("swap assets for exact shares", () => {
       pool: pool.publicKey,
       poolAssetsAccount: assetVault.publicKey,
       poolSharesAccount: shareVault.publicKey,
+      poolAssetsMint: assetMint,
+      poolSharesMint: shareMint,
       depositorAssetsAccount: buyerAssetVault,
       recipientUserStats: sharesRecipientUserStats,
       lbpFactorySetting:lbpFactoryPda,
@@ -253,6 +261,8 @@ describe.only("swap assets for exact shares", () => {
       pool: pool.publicKey,
       poolAssetsAccount: assetVault.publicKey,
       poolSharesAccount: shareVault.publicKey,
+      poolAssetsMint: assetMint,
+      poolSharesMint: shareMint,
       lbpFactorySetting:lbpFactoryPda,
     })
     .view();
@@ -277,6 +287,8 @@ describe.only("swap assets for exact shares", () => {
       pool: pool.publicKey,
       poolAssetsAccount: assetVault.publicKey,
       poolSharesAccount: shareVault.publicKey,
+      poolAssetsMint: assetMint,
+      poolSharesMint: shareMint,
       depositorAssetsAccount: buyerAssetVault,
       recipientUserStats: buyerStats,
       lbpFactorySetting:lbpFactoryPda,
@@ -304,6 +316,8 @@ describe.only("swap assets for exact shares", () => {
       pool: pool.publicKey,
       poolAssetsAccount: assetVault.publicKey,
       poolSharesAccount: shareVault.publicKey,
+      poolAssetsMint: assetMint,
+      poolSharesMint: shareMint,
       lbpFactorySetting:lbpFactoryPda,
     })
     .view();
@@ -321,6 +335,8 @@ describe.only("swap assets for exact shares", () => {
       pool: pool.publicKey,
       poolAssetsAccount: assetVault.publicKey,
       poolSharesAccount: shareVault.publicKey,
+      poolAssetsMint: assetMint,
+      poolSharesMint: shareMint,
       depositorAssetsAccount: buyerAssetVault,
       recipientUserStats: buyerStats,
       lbpFactorySetting:lbpFactoryPda,

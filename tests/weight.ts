@@ -111,6 +111,8 @@ describe("Weight Calculations", () => {
       pool: pool.publicKey,
       poolAssetsAccount: assetVault.publicKey,
       poolSharesAccount: shareVault.publicKey,
+      poolAssetsMint: assetMint,
+      poolSharesMint: shareMint,
       lbpFactorySetting:lbpFactoryPda,
     })
     .view();
@@ -142,6 +144,8 @@ describe("Weight Calculations", () => {
       pool: pool.publicKey,
       poolAssetsAccount: assetVault.publicKey,
       poolSharesAccount: shareVault.publicKey,
+      poolAssetsMint: assetMint,
+      poolSharesMint: shareMint,
       lbpFactorySetting:lbpFactoryPda,
     })
     .view();
@@ -174,6 +178,8 @@ describe("Weight Calculations", () => {
       pool: pool.publicKey,
       poolAssetsAccount: assetVault.publicKey,
       poolSharesAccount: shareVault.publicKey,
+      poolAssetsMint: assetMint,
+      poolSharesMint: shareMint,
       lbpFactorySetting:lbpFactoryPda,
     })
     .view();
@@ -196,6 +202,8 @@ describe("Weight Calculations", () => {
         pool: pool.publicKey,
         poolAssetVault: assetVault.publicKey,
         poolShareVault: shareVault.publicKey,
+        poolAssetsMint: assetMint,
+        poolSharesMint: shareMint,
       })
       .view();
     

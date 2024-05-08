@@ -110,6 +110,8 @@ beforeEach(async () => {
       pool: pool.publicKey,
       poolAssetsAccount: assetVault.publicKey,
       poolSharesAccount: shareVault.publicKey,
+      poolAssetsMint: assetMint,
+      poolSharesMint: shareMint,
       lbpFactorySetting:lbpFactoryPda,
     })
     .view();
@@ -126,6 +128,8 @@ beforeEach(async () => {
         depositor: buyer.publicKey,
         pool: pool.publicKey,
         poolAssetsAccount: assetVault.publicKey,
+        poolAssetsMint: assetMint,
+        poolSharesMint: shareMint,
         assetVaultAuthority: assetVaultAuthority,
         poolSharesAccount: shareVault.publicKey,
         depositorAssetsAccount: buyerAssetVault,

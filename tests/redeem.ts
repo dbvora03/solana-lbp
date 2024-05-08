@@ -141,7 +141,9 @@ describe("Redeem And Close Tests", () => {
       assetVault.publicKey,
       buyerAssetVault,
       lbpFactoryPda,
-      buyerStats
+      buyerStats,
+      assetMint,
+      shareMint
     );
 
     const poolStateAccountBeforeClose = await program.account.pool.fetch(pool.publicKey);
@@ -262,7 +264,9 @@ describe("Redeem And Close Tests", () => {
       assetVault.publicKey,
       buyerAssetVault,
       lbpFactoryPda,
-      buyerStats
+      buyerStats,
+      assetMint,
+      shareMint
     );
 
     // close the pool
