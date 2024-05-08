@@ -71,6 +71,14 @@ pub fn handler (
   let recipient_user_stats = &mut ctx.accounts.recipient_user_stats;
   let assets: u64 = ctx.accounts.pool_assets_account.amount;
   let shares: u64 = ctx.accounts.pool_shares_account.amount;
+
+  if pool.closed {
+    return err!(ErrorCode::PoolIsClosed);
+  }
+
+  if pool.paused {
+    return err!(ErrorCode::PoolIsPaused);
+  }
   
   // Preview the assets in
   let assets_decimals = ctx.accounts.pool_assets_mint.decimals;

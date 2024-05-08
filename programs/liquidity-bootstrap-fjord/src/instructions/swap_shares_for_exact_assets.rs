@@ -87,9 +87,17 @@ pub fn handler(
   let shares: u64 = ctx.accounts.pool_shares_account.amount;
   let buyer_stats = &mut ctx.accounts.buyer_stats;
 
+  if pool.closed {
+    return err!(ErrorCode::PoolIsClosed);
+  }
+
+  if pool.paused {
+    return err!(ErrorCode::PoolIsPaused);
+  }
+
   let assets_decimals = ctx.accounts.pool_assets_mint.decimals;
   let shares_decimals = ctx.accounts.pool_shares_mint.decimals;
-  let mut shares_in_result = preview_shares_in(pool, assets_out, assets, shares, assets_decimals, shares_decimals);
+  let shares_in_result = preview_shares_in(pool, assets_out, assets, shares, assets_decimals, shares_decimals);
 
   if shares_in_result.is_err() {
     return err!(ErrorCode::MathError);

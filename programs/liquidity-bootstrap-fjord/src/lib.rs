@@ -106,6 +106,15 @@ pub mod liquidity_bootstrap_fjord {
         instructions::close::handler(ctx)
     }
 
+    pub fn pause_pool(ctx: Context<PausePool>) -> Result<()> {
+        instructions::pause_pool::handler(ctx)
+    }
+
+
+    pub fn unpause_pool(ctx: Context<UnpausePool>) -> Result<()> {
+        instructions::unpause_pool::handler(ctx)
+    }
+
     pub fn compute_reserves_and_weights(ctx: Context<ComputeReservesAndWeights>) -> Result<ComputeReservesAndWeightsOutput> {
         instructions::compute_reserves_and_weights::handler(ctx)
     }
