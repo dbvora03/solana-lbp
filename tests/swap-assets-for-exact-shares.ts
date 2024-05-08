@@ -4,7 +4,7 @@ import { assert, expect } from "chai";
 import { SYSVAR_RENT_PUBKEY } from "@solana/web3.js";
 import { ONE_DAY, SOL, closePool, createMintAndVault, createPool, createUser, createUserStats, createVault, defaultInitialAssetAmount, defaultInitialShareAmount, fund, getDefaultPoolSettings, getNow, getSwapFees, initialize, program, provider, swapExactAssetsForShares } from "./utils";
 
-describe("swap assets for exact shares", () => {
+describe.only("swap assets for exact shares", () => {
   /* Settings */
   const factoryId = new anchor.BN(300);
   const decimals = 6; // mint decimals

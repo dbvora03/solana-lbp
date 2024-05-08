@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_spl::token::Mint;
 use anchor_spl::token::{self, TokenAccount, Transfer, Token};
 use crate::errors::ErrorCode;
 use crate::state::*;
@@ -28,6 +29,16 @@ pub struct SwapAssetsForExactShares<'info> {
     constraint = pool_shares_account.owner == pool.share_vault_authority,
   )]
   pub pool_shares_account: Account<'info, TokenAccount>,
+
+  #[account(
+    constraint = pool_assets_mint.key() == pool.settings.asset,
+  )]
+  pub pool_assets_mint: Account<'info, Mint>,
+
+  #[account(
+    constraint = pool_shares_mint.key() == pool.settings.share,
+  )]
+  pub pool_shares_mint: Account<'info, Mint>,
   
   #[account(
     mut,
@@ -62,7 +73,9 @@ pub fn handler (
   let shares: u64 = ctx.accounts.pool_shares_account.amount;
   
   // Preview the assets in
-  let assets_in_result = preview_assets_in(pool, shares_out, assets, shares);
+  let assets_decimals = ctx.accounts.pool_assets_mint.decimals;
+  let shares_decimals = ctx.accounts.pool_shares_mint.decimals;
+  let assets_in_result = preview_assets_in(pool, shares_out, assets, shares, assets_decimals, shares_decimals);
   if assets_in_result.is_err() {
     return err!(ErrorCode::MathError);
   }

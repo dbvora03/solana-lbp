@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_spl::token::Mint;
 use crate::state::*;
 
 pub const SOL: f64 = 1_000_000_000.0;
@@ -55,46 +56,46 @@ pub fn scaled_reserves(
   pool: &Pool,
   asset_reserve: u64,
   share_reserve: u64,
+  asset_decimals: u8,
+  share_decimals: u8,
 ) -> (u64, u64) {
   let asset = pool.settings.asset;
   let share = pool.settings.share;
-  let scaled_asset_token = scale_token_before(asset, asset_reserve);
-  let scaled_share_token = scale_token_before(share, share_reserve);
+  let scaled_asset_token = scale_token_before(asset, asset_reserve, asset_decimals);
+  let scaled_share_token = scale_token_before(share, share_reserve, share_decimals);
   (scaled_asset_token, scaled_share_token)
 }
 
 pub fn scale_token_before(
-  token: Pubkey,
-  amount: u64
+  token: Pubkey, // this is the token mint
+  amount: u64,
+  decimals: u8
 ) -> u64 {
-  // TODO: hardcode now
-  let decimals: u32 = 6;
-  let base_decimals: u32 = 9;
+  let base_decimals: u8 = 9;
   let mut scaled_amount: u64 = amount;
   if decimals < base_decimals {
-    let decDiff: u32 = base_decimals - decimals;
-    scaled_amount = amount * 10_u64.pow(decDiff);
+    let dec_diff: u8 = base_decimals - decimals;
+    scaled_amount = amount * 10_u64.pow(dec_diff as u32);
   } else if decimals > base_decimals {
-    let decDiff: u32 = decimals - base_decimals;
-    scaled_amount = amount / 10_u64.pow(decDiff);
+    let dec_diff: u8 = decimals - base_decimals;
+    scaled_amount = amount / 10_u64.pow(dec_diff as u32);
   }
   scaled_amount
 }
 
 pub fn scale_token_after(
   token: Pubkey,
-  amount: u64
+  amount: u64,
+  decimals: u8
 ) -> u64 {
-  // TODO: hardcode now
-  let decimals: u32 = 6;
-  let base_decimals: u32 = 9;
+  let base_decimals: u8 = 9;
   let mut scaled_amount: u64 = amount;
   if decimals < base_decimals {
-    let decDiff: u32 = base_decimals - decimals;
-    scaled_amount = amount / 10_u64.pow(decDiff);
+    let dec_diff: u8 = base_decimals - decimals;
+    scaled_amount = amount / 10_u64.pow(dec_diff as u32);
   } else if decimals > base_decimals {
-    let decDiff: u32 = decimals - base_decimals;
-    scaled_amount = amount * 10_u64.pow(decDiff);
+    let dec_diff: u8 = decimals - base_decimals;
+    scaled_amount = amount * 10_u64.pow(dec_diff as u32);
   }
   scaled_amount
 }
@@ -119,10 +120,10 @@ pub fn get_amount_out(amount_in: f64, reserve_in: f64, reserve_out: f64, weight_
   Ok(res as u64)
 }
 
-pub fn preview_assets_in(pool: &Pool, shares_out: u64, assets:u64, shares: u64) -> Result<u64> {
+pub fn preview_assets_in(pool: &Pool, shares_out: u64, assets:u64, shares: u64, assets_decimals: u8, shares_decimals: u8) -> Result<u64> {
   let (asset_reserve, share_reserve, asset_weight, share_weight) = compute_reserves_and_weights(&pool, assets, shares);
-  let (asset_reserve_scaled, share_reserve_scaled) = scaled_reserves(pool, asset_reserve, share_reserve);
-  let shares_out_scaled = scale_token_before(pool.settings.share, shares_out);
+  let (asset_reserve_scaled, share_reserve_scaled) = scaled_reserves(pool, asset_reserve, share_reserve, assets_decimals, shares_decimals);
+  let shares_out_scaled = scale_token_before(pool.settings.share, shares_out, shares_decimals);
   let assets_in_result = get_amount_in(
     shares_out_scaled as f64, 
     asset_reserve_scaled as f64, 
@@ -138,14 +139,14 @@ pub fn preview_assets_in(pool: &Pool, shares_out: u64, assets:u64, shares: u64) 
   if assets_in / shares_out_scaled > max_share_price {
     assets_in = shares_out_scaled / max_share_price;
   }
-  assets_in = scale_token_after(pool.settings.asset, assets_in);
+  assets_in = scale_token_after(pool.settings.asset, assets_in, assets_decimals);
   Ok(assets_in)
 }
 
-pub fn preview_shares_out(pool: &Pool, assets_in: u64, assets: u64, shares: u64) -> Result<u64> {
+pub fn preview_shares_out(pool: &Pool, assets_in: u64, assets: u64, shares: u64, assets_decimals: u8, shares_decimals: u8) -> Result<u64> {
   let (asset_reserve, share_reserve, asset_weight, share_weight) = compute_reserves_and_weights(&pool, assets, shares);
-  let (asset_reserve_scaled, share_reserve_scaled) = scaled_reserves(pool, asset_reserve, share_reserve);
-  let assets_in_scaled = scale_token_before(pool.settings.asset, assets_in);
+  let (asset_reserve_scaled, share_reserve_scaled) = scaled_reserves(pool, asset_reserve, share_reserve, assets_decimals, shares_decimals);
+  let assets_in_scaled = scale_token_before(pool.settings.asset, assets_in, assets_decimals);
   let shares_out_result = get_amount_out(
     assets_in_scaled as f64, 
     asset_reserve_scaled as f64, 
@@ -160,15 +161,15 @@ pub fn preview_shares_out(pool: &Pool, assets_in: u64, assets: u64, shares: u64)
   if assets_in_scaled / shares_out > pool.settings.max_share_price {
     shares_out = assets_in_scaled * pool.settings.max_share_price;
   }
-  shares_out = scale_token_after(pool.settings.share, shares_out);
+  shares_out = scale_token_after(pool.settings.share, shares_out, shares_decimals);
   Ok(shares_out)
 }
 
 
-pub fn preview_assets_out(pool: &Pool, shares_in: u64, assets: u64, shares: u64) -> Result<u64> {
+pub fn preview_assets_out(pool: &Pool, shares_in: u64, assets: u64, shares: u64, assets_decimals: u8, shares_decimals: u8) -> Result<u64> {
   let (asset_reserve, share_reserve, asset_weight, share_weight) = compute_reserves_and_weights(&pool, assets, shares);
-  let (asset_reserve_scaled, share_reserve_scaled) = scaled_reserves(pool, asset_reserve, share_reserve);
-  let shares_in_scaled = scale_token_before(pool.settings.share, shares_in);
+  let (asset_reserve_scaled, share_reserve_scaled) = scaled_reserves(pool, asset_reserve, share_reserve, assets_decimals, shares_decimals);
+  let shares_in_scaled = scale_token_before(pool.settings.share, shares_in, shares_decimals);
   let assets_out_result = get_amount_out(
     shares_in_scaled as f64, 
     share_reserve_scaled as f64, 
@@ -183,14 +184,14 @@ pub fn preview_assets_out(pool: &Pool, shares_in: u64, assets: u64, shares: u64)
   if assets_out / shares_in_scaled > pool.settings.max_share_price {
     assets_out = shares_in_scaled * pool.settings.max_share_price;
   }
-  assets_out = scale_token_after(pool.settings.asset, assets_out);
+  assets_out = scale_token_after(pool.settings.asset, assets_out, assets_decimals);
   Ok(assets_out)
 }
 
-pub fn preview_shares_in(pool: &Pool, assets_out: u64, assets: u64, shares: u64) -> Result<u64> {
+pub fn preview_shares_in(pool: &Pool, assets_out: u64, assets: u64, shares: u64, assets_decimals: u8, shares_decimals: u8) -> Result<u64> {
   let (asset_reserve, share_reserve, asset_weight, share_weight) = compute_reserves_and_weights(&pool, assets, shares);
-  let (asset_reserve_scaled, share_reserve_scaled) = scaled_reserves(pool, asset_reserve, share_reserve);
-  let assets_out_scaled = scale_token_before(pool.settings.asset, assets_out);
+  let (asset_reserve_scaled, share_reserve_scaled) = scaled_reserves(pool, asset_reserve, share_reserve, assets_decimals, shares_decimals);
+  let assets_out_scaled = scale_token_before(pool.settings.asset, assets_out, assets_decimals);
   let shares_in_result = get_amount_in(
     assets_out_scaled as f64, 
     share_reserve_scaled as f64, 
@@ -205,6 +206,6 @@ pub fn preview_shares_in(pool: &Pool, assets_out: u64, assets: u64, shares: u64)
   if assets_out_scaled / shares_in > pool.settings.max_share_price {
     shares_in = assets_out_scaled / pool.settings.max_share_price;
   }
-  shares_in = scale_token_after(pool.settings.share, shares_in);
+  shares_in = scale_token_after(pool.settings.share, shares_in, shares_decimals);
   Ok(shares_in)
 }
