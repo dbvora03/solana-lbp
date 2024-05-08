@@ -110,6 +110,8 @@ describe("swap exact assets for shares", () => {
         pool: pool.publicKey,
         poolAssetsAccount: assetVault.publicKey,
         poolSharesAccount: shareVault.publicKey,
+        poolAssetsMint: assetMint,
+        poolSharesMint: shareMint,
         lbpFactorySetting:lbpFactoryPda,
     })
     .view();
@@ -130,6 +132,8 @@ describe("swap exact assets for shares", () => {
         pool: pool.publicKey,
         poolAssetVault: assetVault.publicKey,
         poolShareVault: shareVault.publicKey,
+        poolAssetsMint: assetMint,
+        poolSharesMint: shareMint,
         depositorAssetVault: buyerAssetVault,
         recipientUserStats: buyerStats,
         lbpFactorySetting:lbpFactoryPda,
@@ -179,6 +183,8 @@ describe("swap exact assets for shares", () => {
         pool: pool.publicKey,
         poolAssetsAccount: assetVault.publicKey,
         poolSharesAccount: shareVault.publicKey,
+        poolAssetsMint: assetMint,
+        poolSharesMint: shareMint,
         lbpFactorySetting:lbpFactoryPda,
     })
     .view();
@@ -203,6 +209,8 @@ describe("swap exact assets for shares", () => {
         pool: pool.publicKey,
         poolAssetVault: assetVault.publicKey,
         poolShareVault: shareVault.publicKey,
+        poolAssetsMint: assetMint,
+        poolSharesMint: shareMint,
         depositorAssetVault: buyerAssetVault,
         recipientUserStats: sharesRecipientUserStats,
         lbpFactorySetting:lbpFactoryPda,
@@ -252,6 +260,8 @@ describe("swap exact assets for shares", () => {
         pool: pool.publicKey,
         poolAssetsAccount: assetVault.publicKey,
         poolSharesAccount: shareVault.publicKey,
+        poolAssetsMint: assetMint,
+        poolSharesMint: shareMint,
         lbpFactorySetting:lbpFactoryPda,
     })
     .view();
@@ -272,6 +282,8 @@ describe("swap exact assets for shares", () => {
         pool: pool.publicKey,
         poolAssetVault: assetVault.publicKey,
         poolShareVault: shareVault.publicKey,
+        poolAssetsMint: assetMint,
+        poolSharesMint: shareMint,
         depositorAssetVault: buyerAssetVault,
         recipientUserStats: buyerStats,
         lbpFactorySetting:lbpFactoryPda,
@@ -299,6 +311,8 @@ describe("swap exact assets for shares", () => {
         pool: pool.publicKey,
         poolAssetsAccount: assetVault.publicKey,
         poolSharesAccount: shareVault.publicKey,
+        poolAssetsMint: assetMint,
+        poolSharesMint: shareMint,
         lbpFactorySetting:lbpFactoryPda,
       })
       .view();
@@ -312,6 +326,8 @@ describe("swap exact assets for shares", () => {
       pool: pool.publicKey,
       poolAssetVault: assetVault.publicKey,
       poolShareVault: shareVault.publicKey,
+      poolAssetsMint: assetMint,
+      poolSharesMint: shareMint,
       depositorAssetVault: buyerAssetVault,
       recipientUserStats: buyerStats,
       lbpFactorySetting:lbpFactoryPda,

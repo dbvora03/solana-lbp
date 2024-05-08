@@ -1,3 +1,4 @@
+use anchor_spl::token::Mint;
 use anchor_spl::token::{self, TokenAccount, Transfer, Token};
 use anchor_lang::prelude::*;
 use crate::errors::ErrorCode;
@@ -39,6 +40,16 @@ pub struct SwapExactSharesForAssets<'info> {
     constraint = pool_shares_account.owner == pool.share_vault_authority,
   )]
   pub pool_shares_account: Account<'info, TokenAccount>,
+
+  #[account(
+    constraint = pool_assets_mint.key() == pool.settings.asset,
+  )]
+  pub pool_assets_mint: Account<'info, Mint>,
+
+  #[account(
+    constraint = pool_shares_mint.key() == pool.settings.share,
+  )]
+  pub pool_shares_mint: Account<'info, Mint>,
 
   #[account(
     mut,
@@ -86,7 +97,9 @@ pub fn handler(
   let swap_fee = (shares_in * factory_setting.swap_fee) / 1_000_000_000;
   pool.total_swap_fees_share += swap_fee;
 
-  let assets_out_result = preview_assets_out(pool, shares_in - swap_fee, assets, shares);
+  let assets_decimals = ctx.accounts.pool_assets_mint.decimals;
+  let shares_decimals = ctx.accounts.pool_shares_mint.decimals;
+  let assets_out_result = preview_assets_out(pool, shares_in - swap_fee, assets, shares, assets_decimals, shares_decimals);
 
   if assets_out_result.is_err() {
     return err!(ErrorCode::MathError);
